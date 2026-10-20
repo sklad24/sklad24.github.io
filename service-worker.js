@@ -1,6 +1,6 @@
 /* Версию бампаем при КАЖДОЙ выкладке — иначе у установленных приложений
    останется старый кеш, и правки увидят не сразу. */
-const CACHE_NAME = 'sklad-v98';
+const CACHE_NAME = 'sklad-v100';
 
 /* Всё, что нужно приложению для полностью автономной работы: оболочка,
    иконки, сканер штрихкодов, генератор QR и шрифты. Раньше сканер, QR и
@@ -24,20 +24,20 @@ const ASSETS = [
   /* Свои скрипты и стили — с номером версии в адресе (его поднимает
      выкладка вместе с CACHE_NAME): новая страница никогда не получит из
      кеша старый кусок кода, а старая — новый. */
-  './css/app.css?v=98',
-  './sync-config.js?v=98',
-  './js/db.js?v=98',
-  './js/sync-ui.js?v=98',
-  './js/input.js?v=98',
-  './js/returns-scan.js?v=98',
-  './js/sounds.js?v=98',
-  './js/stock-history.js?v=98',
-  './js/finance.js?v=98',
-  './js/balance.js?v=98',
-  './js/analytics.js?v=98',
-  './js/settings-roles.js?v=98',
-  './js/backup-labels.js?v=98',
-  './sync.js?v=98',
+  './css/app.css?v=100',
+  './sync-config.js?v=100',
+  './js/db.js?v=100',
+  './js/sync-ui.js?v=100',
+  './js/input.js?v=100',
+  './js/returns-scan.js?v=100',
+  './js/sounds.js?v=100',
+  './js/stock-history.js?v=100',
+  './js/finance.js?v=100',
+  './js/balance.js?v=100',
+  './js/analytics.js?v=100',
+  './js/settings-roles.js?v=100',
+  './js/backup-labels.js?v=100',
+  './sync.js?v=100',
   './fonts/fonts.css',
   './fonts/Onest-cyrillic.woff2',
   './fonts/Onest-latin.woff2',
