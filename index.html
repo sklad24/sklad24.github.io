@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=102">
+<link rel="stylesheet" href="css/app.css?v=104">
 </head>
 <body>
 
@@ -681,6 +681,11 @@
         <div class="card-head"><span class="t-eyebrow" id="balPaidHead">Выплачено</span></div>
         <div id="balPaidList"></div>
       </div>
+
+      <div class="card" id="balPayoutsCard" hidden>
+        <div class="card-head"><span class="t-eyebrow" id="balPayoutsHead">Журнал выплат</span><span class="t-caption" id="balPayoutsTotal" style="color:var(--text-tertiary);"></span></div>
+        <div id="balPayoutsList"></div>
+      </div>
     </section>
 
   </main>
@@ -976,19 +981,19 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=102"></script>
-<script src="js/db.js?v=102"></script>
-<script src="js/sync-ui.js?v=102"></script>
-<script src="js/input.js?v=102"></script>
-<script src="js/returns-scan.js?v=102"></script>
-<script src="js/sounds.js?v=102"></script>
-<script src="js/stock-history.js?v=102"></script>
-<script src="js/finance.js?v=102"></script>
-<script src="js/balance.js?v=102"></script>
-<script src="js/analytics.js?v=102"></script>
-<script src="js/settings-roles.js?v=102"></script>
-<script src="js/backup-labels.js?v=102"></script>
+<script src="sync-config.js?v=104"></script>
+<script src="js/db.js?v=104"></script>
+<script src="js/sync-ui.js?v=104"></script>
+<script src="js/input.js?v=104"></script>
+<script src="js/returns-scan.js?v=104"></script>
+<script src="js/sounds.js?v=104"></script>
+<script src="js/stock-history.js?v=104"></script>
+<script src="js/finance.js?v=104"></script>
+<script src="js/balance.js?v=104"></script>
+<script src="js/analytics.js?v=104"></script>
+<script src="js/settings-roles.js?v=104"></script>
+<script src="js/backup-labels.js?v=104"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=102"></script>
+<script src="sync.js?v=104"></script>
 </body>
 </html>
