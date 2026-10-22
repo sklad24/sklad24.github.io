@@ -90,12 +90,34 @@ function visibleToPartner(row){
   return matchesEmployeeScope(row) && (row.timestamp || 0) >= partnerFromTs();
 }
 
+/* Журнал выплат: дата, сумма и что закрыто. Отмена отметки — минусовая запись,
+   чтобы сумма журнала всегда сходилась с тем, что реально выплачено. */
+async function recordPayout(amount, note, who){
+  const now = Date.now();
+  await put('payouts', {
+    uid: 'pay_' + now + '_' + Math.random().toString(36).slice(2, 8),
+    employee: (who && who.employee) || '',
+    memberId: (who && who.memberId) || undefined,
+    amount: Math.round((Number(amount) || 0) * 100) / 100,
+    note,
+    timestamp: now,
+    dateKey: dateKeyOf(new Date(now)),
+    dateDisplay: new Date(now).toLocaleDateString('ru-RU')
+  });
+}
+
 async function toggleOrderPaid(uid, isPaid){
   const o = await get('orders', uid);
   if(!o) return;
+  const wasPaid = !!o.paid;
   o.paid = !!isPaid;
   o.paidAt = isPaid ? Date.now() : undefined;
   await put('orders', o);
+  if(wasPaid !== o.paid){
+    const com = Number(o.commission) || 0;
+    const what = (o.note || 'продажа') + ' · ' + (o.dateDisplay || new Date(o.timestamp).toLocaleDateString('ru-RU'));
+    await recordPayout(o.paid ? com : -com, (o.paid ? 'Выплата: ' : 'Снята отметка: ') + what, o);
+  }
   if(window.Sync && Sync.syncNow) Sync.syncNow(isPaid ? 'отмечено выплачено' : 'снята отметка');
   await renderBalance(currentBalancePeriod, null);
 }
@@ -244,6 +266,31 @@ async function renderBalanceLists(range){
     }
   }
 }
+/* Журнал выплат за период: когда выплатила и сколько. Партнёр видит только свои
+   выплаты (записи без партнёра — общий пул — ему не показываем). */
+async function renderBalancePayouts(range){
+  const card = document.getElementById('balPayoutsCard');
+  if(!card) return;
+  const emp = isEmployee();
+  card.hidden = false;
+  const head = document.getElementById('balPayoutsHead');
+  if(head) head.textContent = emp ? 'Мои выплаты' : 'Журнал выплат';
+  const inRange = ts => !range || (ts >= range.start && ts <= range.end);
+  const mine = p=> (p.memberId && window.__empMemberId && p.memberId === window.__empMemberId)
+                 || (!!p.employee && p.employee === (window.__empName || ''));
+  const list = (await getAllLive('payouts'))
+    .filter(p=> inRange(p.timestamp))
+    .filter(p=> !emp || (mine(p) && (p.timestamp || 0) >= partnerFromTs()))
+    .sort((a,b)=> b.timestamp - a.timestamp);
+  const total = list.reduce((s,p)=> s + (Number(p.amount)||0), 0);
+  document.getElementById('balPayoutsTotal').textContent = list.length ? 'Итого: ' + rub(total) + ' ₽' : '';
+  document.getElementById('balPayoutsList').innerHTML = list.length
+    ? list.slice(0, 400).map(p=> `<div class="row-item">
+        <div class="rmain"><div class="rname">${escapeHtml((emp ? '' : (p.employee ? p.employee + ' · ' : '')) + (p.dateDisplay || ''))}</div><div class="rmeta">${escapeHtml(p.note || '')}</div></div>
+        <div class="rside"><span class="rval ${p.amount < 0 ? 'neg' : 'pos'}">${rub(p.amount)} ₽</span></div>
+      </div>`).join('')
+    : emptyLine('', 'Выплат за период нет');
+}
 /* Отмечает выплаченными разом все начисления, которые сейчас видны в
    «Не выплачено» (то есть за выбранный период) — чтобы не тыкать галочки
    по одной, если заказов за период много. */
@@ -259,6 +306,21 @@ async function markAllUnpaidVisible(){
     o.paid = true;
     o.paidAt = now;
     await put('orders', o);
+  }
+  /* По одной записи на каждого партнёра: так партнёр видит свои выплаты, а не общий итог. */
+  const byWho = new Map();
+  unpaid.forEach(o=>{
+    const key = (o.memberId || '') + '|' + (o.employee || '');
+    if(!byWho.has(key)) byWho.set(key, {who: o, list: []});
+    byWho.get(key).list.push(o);
+  });
+  const dayStr = ts => new Date(ts).toLocaleDateString('ru-RU');
+  for(const {who, list} of byWho.values()){
+    const part = list.reduce((s,o)=> s + (Number(o.commission)||0), 0);
+    const from = Math.min(...list.map(o=> o.timestamp || 0));
+    const to = Math.max(...list.map(o=> o.timestamp || 0));
+    const period = dayStr(from) + (dayStr(to) !== dayStr(from) ? ' – ' + dayStr(to) : '');
+    await recordPayout(part, 'Выплата за заказы ' + period + ' · ' + list.length + ' шт.', who);
   }
   if(window.Sync && Sync.syncNow) Sync.syncNow('массово отмечено выплачено');
   toast('Отмечено выплаченными: ' + unpaid.length);
@@ -305,5 +367,6 @@ async function renderBalance(period, btnEl){
   renderBalanceByDay(data);
   renderBalanceByTier(data);
   await renderBalanceLists(range);
+  await renderBalancePayouts(range);
 }
 
