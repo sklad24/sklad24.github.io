@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=105">
+<link rel="stylesheet" href="css/app.css?v=106">
 </head>
 <body>
 
@@ -542,7 +542,7 @@
         <button class="active" id="finPeriodBtn1" onclick="renderFinance(1,this)">Сегодня</button>
         <button id="finPeriodBtnYesterday" onclick="renderFinance('yesterday',this)">Вчера</button>
         <button id="finPeriodBtn7" onclick="renderFinance(7,this)">Неделя</button>
-        <button id="finPeriodBtn30" onclick="renderFinance(30,this)">Месяц</button>
+        <button id="finPeriodBtn30" onclick="renderFinance('thisMonth',this)">Месяц</button>
         <!-- свой период — один календарь вместо двух полей и кнопки рядом -->
         <button id="finPeriodBtnRange" class="period-cal" onclick="openRangeModal()" aria-label="Выбрать свой период"><svg class="icon"><use href="#i-calendar"/></svg></button>
       </div>
@@ -983,20 +983,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=105"></script>
-<script src="js/db.js?v=105"></script>
-<script src="js/sync-ui.js?v=105"></script>
-<script src="js/input.js?v=105"></script>
-<script src="js/returns-scan.js?v=105"></script>
-<script src="js/sounds.js?v=105"></script>
-<script src="js/stock-history.js?v=105"></script>
-<script src="js/xlsx-writer.js?v=105"></script>
-<script src="js/finance.js?v=105"></script>
-<script src="js/balance.js?v=105"></script>
-<script src="js/analytics.js?v=105"></script>
-<script src="js/settings-roles.js?v=105"></script>
-<script src="js/backup-labels.js?v=105"></script>
+<script src="sync-config.js?v=106"></script>
+<script src="js/db.js?v=106"></script>
+<script src="js/sync-ui.js?v=106"></script>
+<script src="js/input.js?v=106"></script>
+<script src="js/returns-scan.js?v=106"></script>
+<script src="js/sounds.js?v=106"></script>
+<script src="js/stock-history.js?v=106"></script>
+<script src="js/xlsx-writer.js?v=106"></script>
+<script src="js/finance.js?v=106"></script>
+<script src="js/balance.js?v=106"></script>
+<script src="js/analytics.js?v=106"></script>
+<script src="js/settings-roles.js?v=106"></script>
+<script src="js/backup-labels.js?v=106"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=105"></script>
+<script src="sync.js?v=106"></script>
 </body>
 </html>
