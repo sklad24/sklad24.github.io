@@ -721,15 +721,8 @@ async function renderReturnsReport(days){
     else if(h.snap.returnAction === 'reship') r.reship += q;
     else if(h.snap.returnAction === 'damaged') r.damaged += q;
   });
-  const waiting = await returnsBySku();
-  /* Товары, которые сейчас ждут решения, показываем всегда — даже если их
-     возврат был раньше выбранного периода. «Сейчас ждут» считается за всё время. */
-  const products = await getAllLive('products');
-  Object.keys(waiting).forEach(sku=>{
-    if((waiting[sku].ret || 0) <= 0 || rows[sku]) return;
-    const p = products.find(x=> x.sku === sku);
-    rows[sku] = {name: (p && p.name) || sku, got:0, reship:0, damaged:0};
-  });
+  /* Только то, что произошло в выбранном периоде: сколько вернули и сколько
+     из этого повреждено — чтобы видеть, брак ли это у товара. */
   const list = Object.entries(rows).sort((a,b)=> b[1].got - a[1].got);
   if(!list.length){
     box.innerHTML = emptyLine('i-inbox', 'За этот период возвратов не было');
@@ -737,16 +730,14 @@ async function renderReturnsReport(days){
   }
   const totalGot = list.reduce((s,[,r])=> s + r.got, 0);
   box.innerHTML = list.map(([sku,r])=>{
-    const open = (waiting[sku] && waiting[sku].ret) || 0;
     return `<div class="row-item">
       <div class="rmain"><div class="rname">${escapeHtml(r.name)}</div>
-        <div class="rmeta">отправили снова ${r.reship} шт · повреждены ${r.damaged} шт<br>сейчас ждут ${open} шт</div></div>
-      <span class="rval">${r.got} шт</span>
+        <div class="rmeta">повреждено ${r.damaged} шт за период</div></div>
+      <span class="rval">вернули ${r.got} шт</span>
     </div>`;
   }).join('') + `<div class="t-caption" style="margin-top:8px;color:var(--text-tertiary);">
-    Всего вернули за период: ${totalGot} шт. «Вернули» — сколько штук пришло от покупателя за период.
-    «Отправили снова» — ушли покупателю повторно, списаны со склада. «Повреждены» — перенесены в «Повреждённые».
-    «Сейчас ждут» — возвраты, которые ещё не отправлены, за всё время.</div>`;
+    Всего вернули за период: ${totalGot} шт. Показано по выбранному периоду: вернули — сколько штук пришло от покупателя,
+    повреждено — сколько из них отмечено повреждёнными в этом же периоде.</div>`;
 }
 
 /* Ключ дня по местному времени. Через toISOString получался бы день по
