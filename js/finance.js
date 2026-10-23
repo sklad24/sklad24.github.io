@@ -525,10 +525,10 @@ function buildSummaryColumns(present, owner){
       get:d=> d.revenue - d.cost, f:(rn, L)=> `${L.revenue}${rn}-${L.cost}${rn}`}
   );
   present.forEach(p=> cols.push({title:p.title, width:13, style:4, key:p.src, sum:8, get:d=> d[p.src]}));
-  cols.push({title:'Реклама, ₽', width:13, style:4, key:'ads', sum:8, get:d=> d.ads});
+  /* реклама в отчёт по товарам не выводится: она одна на весь магазин, её видно внизу */
   cols.push({title:'Прибыль чистая, ₽', width:14, style:4, key:'net', sum:8,
-    get:d=> d.revenue - d.cost - present.reduce((s, p)=> s + (Number(d[p.src]) || 0), 0) - d.ads,
-    f:(rn, L)=> [`${L.gross}${rn}`].concat(present.map(p=> `${L[p.src]}${rn}`), [`${L.ads}${rn}`]).join('-')});
+    get:d=> d.revenue - d.cost - present.reduce((s, p)=> s + (Number(d[p.src]) || 0), 0),
+    f:(rn, L)=> [`${L.gross}${rn}`].concat(present.map(p=> `${L[p.src]}${rn}`)).join('-')});
   cols.push(
     {title:'Вернули, шт', width:10, style:5, key:'got', sum:9, get:d=> d.got},
     {title:'Повреждены, шт', width:12, style:5, key:'damaged', sum:9, get:d=> d.damaged},
@@ -542,16 +542,12 @@ async function exportProductReport(){
   const range = getPeriodRange(days);
   const {list, lastIn, waiting, products} = await buildProductReport(days);
   const owner = isFullWorkspace();
-  /* Реклама в учёте общая (по дням), поэтому по товарам её делим пропорционально
-     выручке товара. Сумма по товарам всегда равна общей рекламе за период. */
+  /* Реклама — одна сумма на весь магазин за период, по товарам не делится */
   const adsTotal = await computeAdSpendForPeriod(days);
-  const revTotal = list.reduce((s, r)=> s + r.revenue, 0);
-  const adsShare = r=> revTotal > 0 ? adsTotal * r.revenue / revTotal : 0;
-  const unalloc = revTotal > 0 ? 0 : adsTotal;   // реклама за период без продаж
   const data = list.map(r=>{
     const p = products.find(x=> x.sku === r.sku) || {};
     return {
-      name: r.name, sku: r.sku, barcode: p.barcode || '', supplier: p.supplier || '', ads: adsShare(r),
+      name: r.name, sku: r.sku, barcode: p.barcode || '', supplier: p.supplier || '',
       lastIn: lastIn[r.sku] || 0,
       qty: r.qty, cost: r.cost, revenue: r.revenue,
       comm: r.comm, tax: r.tax, pack: r.pack, deliv: r.deliv,
@@ -585,13 +581,11 @@ async function exportProductReport(){
     merges.push(`B${r}:H${r}`);
     return r;
   };
-  addBlock('Реклама за период (уже учтена в прибыли по товарам), ₽', {v: adsTotal, s: 4});
-  let unallocRow = null, partnerRow = null;
-  if(unalloc) unallocRow = addBlock('Реклама без продаж (не распределена), ₽', {v: unalloc, s: 4});
+  const adsRow = addBlock('Реклама за период (общая, на весь магазин), ₽', {v: adsTotal, s: 4});
+  let partnerRow = null;
   if(owner) partnerRow = addBlock('Комиссия партнёрам, ₽', {v: partner, s: 4});
-  const netFinal = tNet - unalloc - partner;
-  let netF = tot ? `${L.net}${totalRow}` : null;
-  if(netF && unallocRow) netF += `-I${unallocRow}`;
+  const netFinal = tNet - adsTotal - partner;
+  let netF = tot ? `${L.net}${totalRow}-I${adsRow}` : null;
   if(netF && partnerRow) netF += `-I${partnerRow}`;
   addBlock('Чистая прибыль' + (owner ? ' (после рекламы и партнёров), ₽' : ' (после рекламы), ₽'),
     netF ? {v: netFinal, f: netF, s: 8} : {v: netFinal, s: 8});
