@@ -14,6 +14,11 @@ function getPeriodRange(period){
   if(typeof period === 'object' && period.start !== undefined){
     return {start: period.start, end: period.end};
   }
+  /* «Месяц» — календарный: с первого числа текущего месяца по сегодня */
+  if(period==='thisMonth'){
+    const now = new Date();
+    return {start: new Date(now.getFullYear(), now.getMonth(), 1).getTime(), end: now.getTime()};
+  }
   const end = new Date(); const start = new Date();
   if(period==='yesterday'){
     start.setDate(start.getDate()-1); start.setHours(0,0,0,0);
@@ -343,7 +348,7 @@ function selectFinRingSegment(i){
 async function renderFinance(days, btnEl){
   currentFinancePeriod = days;
   const isCustom = typeof days === 'object' && days !== null;
-  const ids = {1:'finPeriodBtn1','yesterday':'finPeriodBtnYesterday',7:'finPeriodBtn7',30:'finPeriodBtn30'};
+  const ids = {1:'finPeriodBtn1','yesterday':'finPeriodBtnYesterday',7:'finPeriodBtn7','thisMonth':'finPeriodBtn30'};
   document.querySelectorAll('#finPeriodSeg button').forEach(b=>b.classList.remove('active'));
   // при своём периоде подсвечивается сам календарь
   const activeBtn = btnEl || document.getElementById(isCustom ? 'finPeriodBtnRange' : ids[days]);
