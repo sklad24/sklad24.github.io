@@ -68,6 +68,14 @@ async function renderReturns(){
     open = open.filter(h=> (h.timestamp||0) >= from);
     damaged = damaged.filter(h=> (h.timestamp||0) >= from);
   }
+  /* Сколько всего возвратов было по каждой модели (с учётом уже отправленных
+     и повреждённых) — чтобы видеть, что модель возвращают часто. */
+  const retTotals = {};
+  (await getAllLive('history')).forEach(h=>{
+    if(h.type !== 'Корректировка' || !h.snap || !h.snap.isReturn || h.snap.returnClose) return;
+    if(emp && (h.timestamp || 0) < partnerFromTs()) return;
+    retTotals[h.sku] = (retTotals[h.sku] || 0) + (Math.abs(Number(h.delta)) || 0);
+  });
   const sub = document.getElementById('returnsSub');
   if(sub) sub.textContent = emp
     ? 'Товары, которые вы вернули — пока не отправлены покупателю снова'
@@ -83,7 +91,7 @@ async function renderReturns(){
       <div class="row-item">
         <div class="rmain">
           <div class="rname">${escapeHtml(h.name)}</div>
-          <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time}</div>
+          <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time} · возвратов по модели всего: ${retTotals[h.sku] || 0} шт</div>
         </div>
         <div class="rside">
           <span class="rval pos">+${Math.abs(h.delta)} шт</span>
@@ -94,7 +102,7 @@ async function renderReturns(){
         <input type="checkbox" class="inv-chk" aria-label="Отправлено покупателю снова" onchange="resolveReturn(${h.id}, this.checked, this)">
         <div class="rmain">
           <div class="rname">${escapeHtml(h.name)}</div>
-          <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time}</div>
+          <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time} · возвратов по модели всего: ${retTotals[h.sku] || 0} шт</div>
         </div>
         <div class="rside">
           <span class="rval pos">+${Math.abs(h.delta)} шт</span>
@@ -113,7 +121,7 @@ async function renderReturns(){
           <input type="checkbox" class="inv-chk" aria-label="Заменили — вернуть в возвраты" onchange="restoreFromDamaged(${h.id}, this.checked)">
           <div class="rmain">
             <div class="rname">${escapeHtml(h.name)}</div>
-            <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time}</div>
+            <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time} · возвратов по модели всего: ${retTotals[h.sku] || 0} шт</div>
           </div>
           <div class="rside">
             <span class="rval">${Math.abs(h.qty)} шт</span>
@@ -123,7 +131,7 @@ async function renderReturns(){
           <input type="checkbox" class="inv-chk" aria-label="Заменили — вернуть в возвраты" onchange="restoreFromDamaged(${h.id}, this.checked)">
           <div class="rmain">
             <div class="rname">${escapeHtml(h.name)}</div>
-            <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time}</div>
+            <div class="rmeta">${escapeHtml(h.sku)} · ${h.date} ${h.time} · возвратов по модели всего: ${retTotals[h.sku] || 0} шт</div>
           </div>
           <div class="rside">
             <span class="rval">${Math.abs(h.qty)} шт</span>
