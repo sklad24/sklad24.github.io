@@ -722,6 +722,14 @@ async function renderReturnsReport(days){
     else if(h.snap.returnAction === 'damaged') r.damaged += q;
   });
   const waiting = await returnsBySku();
+  /* Товары, которые сейчас ждут решения, показываем всегда — даже если их
+     возврат был раньше выбранного периода. «Сейчас ждут» считается за всё время. */
+  const products = await getAllLive('products');
+  Object.keys(waiting).forEach(sku=>{
+    if((waiting[sku].ret || 0) <= 0 || rows[sku]) return;
+    const p = products.find(x=> x.sku === sku);
+    rows[sku] = {name: (p && p.name) || sku, got:0, reship:0, damaged:0};
+  });
   const list = Object.entries(rows).sort((a,b)=> b[1].got - a[1].got);
   if(!list.length){
     box.innerHTML = emptyLine('i-inbox', 'За этот период возвратов не было');
