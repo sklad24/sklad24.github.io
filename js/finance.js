@@ -732,7 +732,7 @@ async function renderReturnsReport(days){
     const open = (waiting[sku] && waiting[sku].ret) || 0;
     return `<div class="row-item">
       <div class="rmain"><div class="rname">${escapeHtml(r.name)}</div>
-        <div class="rmeta" style="white-space:normal;overflow:visible;text-overflow:clip;">отправили снова ${r.reship} шт · повреждены ${r.damaged} шт · сейчас ждут ${open} шт</div></div>
+        <div class="rmeta">отправили снова ${r.reship} шт · повреждены ${r.damaged} шт<br>сейчас ждут ${open} шт</div></div>
       <span class="rval">${r.got} шт</span>
     </div>`;
   }).join('') + `<div class="t-caption" style="margin-top:8px;color:var(--text-tertiary);">
