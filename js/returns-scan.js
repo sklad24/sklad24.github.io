@@ -70,11 +70,12 @@ async function renderReturns(){
   }
   /* Сколько всего возвратов было по каждой модели (с учётом уже отправленных
      и повреждённых) — чтобы видеть, что модель возвращают часто. */
-  const retTotals = {};
+  const retTotals = {}, retNames = {};
   (await getAllLive('history')).forEach(h=>{
     if(h.type !== 'Корректировка' || !h.snap || !h.snap.isReturn || h.snap.returnClose) return;
     if(emp && (h.timestamp || 0) < partnerFromTs()) return;
     retTotals[h.sku] = (retTotals[h.sku] || 0) + (Math.abs(Number(h.delta)) || 0);
+    retNames[h.sku] = retNames[h.sku] || h.name;
   });
   const sub = document.getElementById('returnsSub');
   if(sub) sub.textContent = emp
@@ -110,6 +111,21 @@ async function renderReturns(){
           <button class="icon-btn" onclick="deleteReturnEntry(${h.id})" aria-label="Удалить"><svg class="icon"><use href="#i-trash"/></svg></button>
         </div>
       </div>`).join('');
+  }
+
+  /* Сводка по моделям — под списком: всего возвратов за всё время и сколько ждут сейчас */
+  const byModel = document.getElementById('returnsByModel');
+  if(byModel){
+    const openBy = {};
+    open.forEach(h=> { openBy[h.sku] = (openBy[h.sku] || 0) + (Math.abs(Number(h.delta)) || 0); });
+    const skus = Object.keys(retTotals).sort((a, b)=> String(retNames[a] || a).localeCompare(String(retNames[b] || b), 'ru'));
+    byModel.innerHTML = skus.length
+      ? skus.map(sku=> `<div class="row-item">
+          <div class="rmain"><div class="rname">${escapeHtml(retNames[sku] || sku)}</div>
+            <div class="rmeta">${escapeHtml(sku)} · сейчас ждут ${openBy[sku] || 0} шт</div></div>
+          <span class="rval">${retTotals[sku]} шт</span>
+        </div>`).join('') + '<div class="t-caption" style="margin-top:8px;color:var(--text-tertiary);">Справа — сколько возвратов было по модели всего за всё время.</div>'
+      : emptyLine('i-inbox', 'Возвратов по моделям пока не было');
   }
 
   const dlist = document.getElementById('damagedList');
