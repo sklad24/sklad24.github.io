@@ -453,52 +453,6 @@ async function adSpendByDay(range){
   return out;
 }
 
-/* ============================================================
-   ПОШТУЧНО: дата покупки каждой проданной штуки
-   Приложение не знает, какая именно физическая штука ушла покупателю,
-   поэтому дата покупки — по порядку «первым пришёл — первым ушёл» (FIFO):
-   каждая продажа забирает штуки из самых ранних поступлений. Это правило
-   учёта, а не факт о конкретной коробке. Пересчёт идёт по всей истории,
-   поэтому старые продажи тоже получают дату. Если поступление не нашлось
-   (товар был до учёта) — дата «не известна».
-   Положительные корректировки и возвраты — тоже поступления; возврат
-   помечается как «возврат». Отрицательные (кроме продаж) просто съедают
-   штуки из очереди.
-   ============================================================ */
-function allocateUnitLots(hist){
-  const bySku = {};
-  hist.forEach(h=>{
-    if(!h.sku) return;
-    (bySku[h.sku] || (bySku[h.sku] = [])).push(h);
-  });
-  const unitDates = new Map();   // uid продажи → массив дат покупки по штукам
-  Object.values(bySku).forEach(list=>{
-    list.sort((a,b)=> (a.timestamp||0) - (b.timestamp||0));
-    const lots = [];
-    list.forEach(h=>{
-      let d = Number(h.delta);
-      if(!Number.isFinite(d)) d = h.type === 'Расход' ? -Math.abs(Number(h.qty)||0) : Math.abs(Number(h.qty)||0);
-      if(d > 0){
-        const isRet = !!(h.snap && h.snap.isReturn);
-        lots.push({date: isRet ? 'возврат' : (h.timestamp || 0), left: d});
-        return;
-      }
-      if(d >= 0) return;
-      let n = -d;
-      const dates = [];
-      while(n > 0){
-        const lot = lots.find(l=> l.left > 0);
-        if(!lot){ dates.push(null); n--; continue; }
-        const take = Math.min(lot.left, n);
-        for(let i = 0; i < take; i++) dates.push(lot.date);
-        lot.left -= take; n -= take;
-      }
-      if(h.type === 'Расход') unitDates.set(h.uid || ('#' + h.id), dates);
-    });
-  });
-  return unitDates;
-}
-
 /* Выгрузка в Excel (.xlsx). Формулы — в колонках «прибыль» и в итогах,
    поэтому Excel сам пересчитывает их, если вы поправите цифру в ячейке. */
 function reportPeriodLabel(range){
@@ -508,11 +462,6 @@ function reportPeriodLabel(range){
 function reportStamp(range){
   return range ? (dateKeyOf(new Date(range.start)) + '_' + dateKeyOf(new Date(range.end))) : 'все-время';
 }
-function unitPurchaseCell(d){
-  if(d === null || d === undefined) return {v: 'не известна', s: 3};
-  if(d === 'возврат') return {v: 'возврат', s: 3};
-  return {v: xlsxDateSerial(d), s: 6};
-}
 
 /* Удержания, которых нет ни в одной строке отчёта, в файл не попадают:
    у товара с фиксированной ценой комиссии, налога, упаковки и скидки нет,
@@ -521,7 +470,7 @@ function unitPurchaseCell(d){
 const REPORT_DEDUCTIONS = [
   {src:'comm',  title:'Комиссия маркетплейса, ₽'},
   {src:'tax',   title:'Налог, ₽'},
-  {src:'pack',  title:'Упаковка, ₽'},
+  /* упаковку партнёр берёт на себя — в отчётах её нет */
   /* скидка на доставку — колонка всегда, даже если нулевая */
   {src:'deliv', title:'Скидка на доставку, ₽', always:true}
 ];
@@ -564,10 +513,7 @@ function layoutSheet(cols, data, firstRow){
 function buildSummaryColumns(present, owner){
   const cols = [
     {title:'№', width:5, style:5, get:(d, i)=> i + 1},
-    {title:'Товар', width:30, style:3, get:d=> d.name},
-    {title:'SKU', width:16, style:3, get:d=> d.sku},
-    {title:'Штрихкод', width:16, style:3, get:d=> d.barcode},
-    {title:'Поставщик', width:18, style:3, get:d=> d.supplier}
+    {title:'Товар', width:30, style:3, get:d=> d.name}
   ];
   /* «Последний приход» — только в главном аккаунте */
   if(owner) cols.push({title:'Последний приход', width:14, style:6, get:d=> d.lastIn ? xlsxDateSerial(d.lastIn) : ''});
@@ -711,7 +657,6 @@ async function exportProductUnits(){
   const range = getPeriodRange(days);
   const hist = await getAllLive('history');
   const products = await getAllLive('products');
-  const unitDates = allocateUnitLots(hist);
   const inRange = ts => !range || (ts >= range.start && ts <= range.end);
   const sales = hist.filter(h=> h.type === 'Расход' && inRange(h.timestamp))
     .sort((a, b)=> (a.timestamp || 0) - (b.timestamp || 0));
@@ -720,13 +665,11 @@ async function exportProductUnits(){
     const p = products.find(x=> x.sku === h.sku) || {};
     const e = opEconomics(h, p);
     if(!e || !e.qty) return;
-    const dates = unitDates.get(h.uid || ('#' + h.id)) || [];
     const q = e.qty, per = v => v / q;
     for(let i = 0; i < q; i++){
       data.push({
         date: h.timestamp || 0, time: h.time || '',
         name: h.name || p.name || h.sku, sku: h.sku, barcode: p.barcode || '', supplier: p.supplier || '',
-        purchase: dates[i] === undefined ? null : dates[i],
         price: per(e.revenue), cost: per(e.cost), comm: per(e.comm), tax: per(e.tax),
         pack: per(e.pack), deliv: per(e.delivDiscount)
       });
@@ -738,10 +681,6 @@ async function exportProductUnits(){
     {title:'Дата продажи', width:14, style:6, get:d=> xlsxDateSerial(d.date)},
     {title:'Время', width:11, style:3, get:d=> d.time},
     {title:'Товар', width:30, style:3, get:d=> d.name},
-    {title:'SKU', width:16, style:3, get:d=> d.sku},
-    {title:'Штрихкод', width:16, style:3, get:d=> d.barcode},
-    {title:'Поставщик', width:18, style:3, get:d=> d.supplier},
-    {title:'Дата покупки штуки', width:18, style:6, get:d=> unitPurchaseCell(d.purchase)},
     {title:'Цена продажи, ₽', width:14, style:4, key:'price', sum:8, get:d=> d.price},
     {title:'Закупка, ₽', width:13, style:4, key:'cost', sum:8, get:d=> d.cost}
   ];
