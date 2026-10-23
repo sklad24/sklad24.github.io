@@ -237,7 +237,8 @@ async function computeFinance(days){
 
     /* Имя берём из карточки, а для удалённых товаров — из самой записи,
        чтобы их продажи не исчезали из отчёта за прошлый период. */
-    if(!bySku[h.sku]) bySku[h.sku] = {name: (p ? p.name : h.name) || h.sku, revenue:0, net:0};
+    if(!bySku[h.sku]) bySku[h.sku] = {name: (p ? p.name : h.name) || h.sku, qty:0, revenue:0, net:0};
+    bySku[h.sku].qty += e.qty;
     bySku[h.sku].revenue += e.revenue;
     bySku[h.sku].net += e.net;
   });
@@ -371,13 +372,435 @@ async function renderFinance(days, btnEl){
   } else {
     list.innerHTML = rows.map(r=>`
       <div class="row-item">
-        <div class="rmain"><div class="rname">${escapeHtml(r.name)}</div><div class="rmeta">выручка ${round(r.revenue)} ₽</div></div>
+        <div class="rmain"><div class="rname">${escapeHtml(r.name)}</div><div class="rmeta">продано ${round(r.qty)} шт · выручка ${round(r.revenue)} ₽</div></div>
         <span class="rval ${r.net>=0?'pos':'neg'}">${round(r.net)} ₽</span>
-      </div>`).join('');
+      </div>`).join('') + `<div class="t-caption" style="margin-top:8px;color:var(--text-tertiary);">
+        Выручка — сумма продаж по цене продажи, сколько заплатили покупатели (до всех расходов).
+        Справа — прибыль товара: выручка минус себестоимость, налог, комиссия площадки, упаковка и скидка на доставку.
+        Реклама и комиссия партнёрам сюда не входят — они учтены в кольце выше.</div>`;
   }
 
+  await renderReturnsReport(days);
   await loadAdSpendToday();
   await renderAdSpendLog();
+}
+
+/* ============================================================
+   ОТЧЁТ ПО ТОВАРАМ (Excel .xlsx)
+   Повторяет таблицу учёта: по каждому товару — закупка, реализация,
+   прибыль, плюс все расходы из карточки (комиссия, налог, упаковка,
+   скидка на доставку), возвраты и остаток. Внизу — реклама, комиссия
+   партнёрам (только в главном аккаунте) и чистая прибыль.
+   Период — тот, что выбран на вкладке «Расходы».
+   ============================================================ */
+async function buildProductReport(days){
+  const hist = await getAllLive('history');
+  const products = await getAllLive('products');
+  const range = getPeriodRange(days);
+  const inRange = ts => !range || (ts >= range.start && ts <= range.end);
+  const rows = {};
+  const lastIn = {};
+  const slot = (sku, name)=> rows[sku] || (rows[sku] = {
+    sku, name: name || sku, qty:0, cost:0, revenue:0, comm:0, tax:0, pack:0, deliv:0,
+    got:0, reship:0, damaged:0
+  });
+  hist.forEach(h=>{
+    if(!h.sku) return;
+    const p = products.find(x=> x.sku === h.sku);
+    if(h.type === 'Приход' && (!lastIn[h.sku] || h.timestamp > lastIn[h.sku])) lastIn[h.sku] = h.timestamp;
+    if(!inRange(h.timestamp)) return;
+    if(h.type === 'Расход'){
+      const e = opEconomics(h, p);
+      if(!e) return;
+      const s = slot(h.sku, p ? p.name : h.name);
+      s.qty += e.qty; s.cost += e.cost; s.revenue += e.revenue;
+      s.comm += e.comm; s.tax += e.tax; s.pack += e.pack; s.deliv += e.delivDiscount;
+    }
+    if(h.type === 'Корректировка' && h.snap && h.snap.isReturn){
+      const s = slot(h.sku, p ? p.name : h.name);
+      const q = Math.abs(Number(h.qty)) || Math.abs(Number(h.delta)) || 0;
+      if(!h.snap.returnClose) s.got += q;
+      else if(h.snap.returnAction === 'reship') s.reship += q;
+      else if(h.snap.returnAction === 'damaged') s.damaged += q;
+    }
+  });
+  const waiting = await returnsBySku();
+  const list = Object.values(rows)
+    .filter(r=> r.qty || r.got || r.reship || r.damaged)
+    .sort((a,b)=> b.revenue - a.revenue);
+  return {list, lastIn, waiting, products, range};
+}
+/* Реклама по дням — тот же расчёт, что и в «Расходах»: поправка за день
+   или ежедневная сумма. Нужна построчно, для блока внизу отчёта. */
+async function adSpendByDay(range){
+  const manual = await getAllLive('adspend');
+  const byDay = {};
+  manual.forEach(a=>{ byDay[a.dateKey] = Number(a.amount) || 0; });
+  const out = [];
+  if(!range) return out;
+  const day = new Date(range.start); day.setHours(12,0,0,0);
+  const last = new Date(range.end);
+  for(let guard = 0; day <= last && guard < 4000; guard++){
+    const key = dateKeyOf(day);
+    out.push({key, amount: (key in byDay) ? byDay[key] : adRateForDay(key)});
+    day.setDate(day.getDate() + 1);
+  }
+  return out;
+}
+
+/* ============================================================
+   ПОШТУЧНО: дата покупки каждой проданной штуки
+   Приложение не знает, какая именно физическая штука ушла покупателю,
+   поэтому дата покупки — по порядку «первым пришёл — первым ушёл» (FIFO):
+   каждая продажа забирает штуки из самых ранних поступлений. Это правило
+   учёта, а не факт о конкретной коробке. Пересчёт идёт по всей истории,
+   поэтому старые продажи тоже получают дату. Если поступление не нашлось
+   (товар был до учёта) — дата «не известна».
+   Положительные корректировки и возвраты — тоже поступления; возврат
+   помечается как «возврат». Отрицательные (кроме продаж) просто съедают
+   штуки из очереди.
+   ============================================================ */
+function allocateUnitLots(hist){
+  const bySku = {};
+  hist.forEach(h=>{
+    if(!h.sku) return;
+    (bySku[h.sku] || (bySku[h.sku] = [])).push(h);
+  });
+  const unitDates = new Map();   // uid продажи → массив дат покупки по штукам
+  Object.values(bySku).forEach(list=>{
+    list.sort((a,b)=> (a.timestamp||0) - (b.timestamp||0));
+    const lots = [];
+    list.forEach(h=>{
+      let d = Number(h.delta);
+      if(!Number.isFinite(d)) d = h.type === 'Расход' ? -Math.abs(Number(h.qty)||0) : Math.abs(Number(h.qty)||0);
+      if(d > 0){
+        const isRet = !!(h.snap && h.snap.isReturn);
+        lots.push({date: isRet ? 'возврат' : (h.timestamp || 0), left: d});
+        return;
+      }
+      if(d >= 0) return;
+      let n = -d;
+      const dates = [];
+      while(n > 0){
+        const lot = lots.find(l=> l.left > 0);
+        if(!lot){ dates.push(null); n--; continue; }
+        const take = Math.min(lot.left, n);
+        for(let i = 0; i < take; i++) dates.push(lot.date);
+        lot.left -= take; n -= take;
+      }
+      if(h.type === 'Расход') unitDates.set(h.uid || ('#' + h.id), dates);
+    });
+  });
+  return unitDates;
+}
+
+/* Выгрузка в Excel (.xlsx). Формулы — в колонках «прибыль» и в итогах,
+   поэтому Excel сам пересчитывает их, если вы поправите цифру в ячейке. */
+function reportPeriodLabel(range){
+  if(!range) return 'за всё время';
+  return 'с ' + new Date(range.start).toLocaleDateString('ru-RU') + ' по ' + new Date(range.end).toLocaleDateString('ru-RU');
+}
+function reportStamp(range){
+  return range ? (dateKeyOf(new Date(range.start)) + '_' + dateKeyOf(new Date(range.end))) : 'все-время';
+}
+function unitPurchaseCell(d){
+  if(d === null || d === undefined) return {v: 'не известна', s: 3};
+  if(d === 'возврат') return {v: 'возврат', s: 3};
+  return {v: xlsxDateSerial(d), s: 6};
+}
+
+/* Удержания, которых нет ни в одной строке отчёта, в файл не попадают:
+   у товара с фиксированной ценой комиссии, налога, упаковки и скидки нет,
+   и пустые колонки только мешают. Если хоть у одного товара есть — колонка
+   выводится у всех. */
+const REPORT_DEDUCTIONS = [
+  {src:'comm',  title:'Комиссия маркетплейса, ₽'},
+  {src:'tax',   title:'Налог, ₽'},
+  {src:'pack',  title:'Упаковка, ₽'},
+  /* скидка на доставку — колонка всегда, даже если нулевая */
+  {src:'deliv', title:'Скидка на доставку, ₽', always:true}
+];
+function presentDeductions(data){
+  return REPORT_DEDUCTIONS.filter(d=> d.always || data.some(r=> Math.abs(Number(r[d.src]) || 0) > 0.004));
+}
+
+/* Колонка: title, width, style (стиль ячейки), key (имя для формул), sum
+   (стиль итога; нет — итог пустой), get(строка, номер, буквы колонок),
+   f(номер строки, буквы) — формула, если колонка считается. */
+function layoutSheet(cols, data, firstRow){
+  const L = {};
+  cols.forEach((c, i)=>{ if(c.key) L[c.key] = xlsxColName(i); });
+  const header = cols.map(c=> ({v: c.title, s: 2}));
+  const body = data.map((d, i)=>{
+    const rn = firstRow + i;
+    return cols.map(c=>{
+      const val = c.get(d, i, L);
+      if(val && typeof val === 'object' && 'v' in val) return Object.assign({s: c.style}, val);
+      const cell = {v: val, s: c.style};
+      if(c.f) cell.f = c.f(rn, L);
+      return cell;
+    });
+  });
+  let tot = null;
+  if(data.length){
+    const last = firstRow + data.length - 1;
+    tot = cols.map((c, i)=>{
+      if(i === 0) return {v: '', s: 7};
+      if(i === 1) return {v: 'ИТОГО', s: 7};
+      if(!c.sum) return {v: '', s: 7};
+      const letter = xlsxColName(i);
+      const sumv = data.reduce((s, d)=> s + (Number(c.get(d, 0, L)) || 0), 0);
+      return {v: sumv, f: `SUM(${letter}${firstRow}:${letter}${last})`, s: c.sum};
+    });
+  }
+  return {L, header, body, tot};
+}
+
+function buildSummaryColumns(present, owner){
+  const cols = [
+    {title:'№', width:5, style:5, get:(d, i)=> i + 1},
+    {title:'Товар', width:30, style:3, get:d=> d.name},
+    {title:'SKU', width:16, style:3, get:d=> d.sku},
+    {title:'Штрихкод', width:16, style:3, get:d=> d.barcode},
+    {title:'Поставщик', width:18, style:3, get:d=> d.supplier}
+  ];
+  /* «Последний приход» — только в главном аккаунте */
+  if(owner) cols.push({title:'Последний приход', width:14, style:6, get:d=> d.lastIn ? xlsxDateSerial(d.lastIn) : ''});
+  cols.push(
+    {title:'Продано, шт', width:10, style:5, key:'qty', sum:9, get:d=> d.qty},
+    {title:'Закупка, ₽', width:13, style:4, key:'cost', sum:8, get:d=> d.cost},
+    {title:'Реализация, ₽', width:14, style:4, key:'revenue', sum:8, get:d=> d.revenue},
+    {title:'Прибыль валовая, ₽', width:14, style:4, key:'gross', sum:8,
+      get:d=> d.revenue - d.cost, f:(rn, L)=> `${L.revenue}${rn}-${L.cost}${rn}`}
+  );
+  present.forEach(p=> cols.push({title:p.title, width:13, style:4, key:p.src, sum:8, get:d=> d[p.src]}));
+  cols.push({title:'Реклама, ₽', width:13, style:4, key:'ads', sum:8, get:d=> d.ads});
+  cols.push({title:'Прибыль чистая, ₽', width:14, style:4, key:'net', sum:8,
+    get:d=> d.revenue - d.cost - present.reduce((s, p)=> s + (Number(d[p.src]) || 0), 0) - d.ads,
+    f:(rn, L)=> [`${L.gross}${rn}`].concat(present.map(p=> `${L[p.src]}${rn}`), [`${L.ads}${rn}`]).join('-')});
+  cols.push(
+    {title:'Вернули, шт', width:10, style:5, key:'got', sum:9, get:d=> d.got},
+    {title:'Повреждены, шт', width:12, style:5, key:'damaged', sum:9, get:d=> d.damaged},
+    {title:'Остаток на складе, шт', width:13, style:5, key:'stock', sum:9, get:d=> d.stock}
+  );
+  return cols;
+}
+
+async function exportProductReport(){
+  const days = currentFinancePeriod;
+  const range = getPeriodRange(days);
+  const {list, lastIn, waiting, products} = await buildProductReport(days);
+  const owner = isFullWorkspace();
+  /* Реклама в учёте общая (по дням), поэтому по товарам её делим пропорционально
+     выручке товара. Сумма по товарам всегда равна общей рекламе за период. */
+  const adsTotal = await computeAdSpendForPeriod(days);
+  const revTotal = list.reduce((s, r)=> s + r.revenue, 0);
+  const adsShare = r=> revTotal > 0 ? adsTotal * r.revenue / revTotal : 0;
+  const unalloc = revTotal > 0 ? 0 : adsTotal;   // реклама за период без продаж
+  const data = list.map(r=>{
+    const p = products.find(x=> x.sku === r.sku) || {};
+    return {
+      name: r.name, sku: r.sku, barcode: p.barcode || '', supplier: p.supplier || '', ads: adsShare(r),
+      lastIn: lastIn[r.sku] || 0,
+      qty: r.qty, cost: r.cost, revenue: r.revenue,
+      comm: r.comm, tax: r.tax, pack: r.pack, deliv: r.deliv,
+      got: r.got, reship: r.reship, damaged: r.damaged,
+      wait: (waiting[r.sku] && waiting[r.sku].ret) || 0,
+      stock: Number(p.totalStock) || 0
+    };
+  });
+  const present = presentDeductions(data);
+  const cols = buildSummaryColumns(present, owner);
+  const {L, header, body, tot} = layoutSheet(cols, data, 5);
+  const rows = [
+    [{v: 'Отчёт по товарам', s: 1}],
+    [{v: 'Период: ' + reportPeriodLabel(range), s: 10}],
+    [],
+    header
+  ].concat(body);
+  const netIdx = cols.findIndex(c=> c.key === 'net');
+  const totalRow = 5 + data.length;
+  if(tot) rows.push(tot);
+  else rows.push([{v: 'За этот период продаж и возвратов не было', s: 10}]);
+
+  /* Блок под таблицей: подпись в B:H, значение в I (колонка выручки). */
+  const merges = ['A1:' + xlsxColName(cols.length - 1) + '1', 'A2:' + xlsxColName(cols.length - 1) + '2'];
+  const partner = owner ? await computePartnerCommission(days) : 0;
+  const tNet = tot ? tot[netIdx].v : 0;
+  rows.push([]);
+  const addBlock = (label, cell)=>{
+    const r = rows.length + 1;
+    rows.push([{v: '', s: 0}, {v: label, s: 3}].concat(Array(6).fill({v: '', s: 3}), [cell]));
+    merges.push(`B${r}:H${r}`);
+    return r;
+  };
+  addBlock('Реклама за период (уже учтена в прибыли по товарам), ₽', {v: adsTotal, s: 4});
+  let unallocRow = null, partnerRow = null;
+  if(unalloc) unallocRow = addBlock('Реклама без продаж (не распределена), ₽', {v: unalloc, s: 4});
+  if(owner) partnerRow = addBlock('Комиссия партнёрам, ₽', {v: partner, s: 4});
+  const netFinal = tNet - unalloc - partner;
+  let netF = tot ? `${L.net}${totalRow}` : null;
+  if(netF && unallocRow) netF += `-I${unallocRow}`;
+  if(netF && partnerRow) netF += `-I${partnerRow}`;
+  addBlock('Чистая прибыль' + (owner ? ' (после рекламы и партнёров), ₽' : ' (после рекламы), ₽'),
+    netF ? {v: netFinal, f: netF, s: 8} : {v: netFinal, s: 8});
+
+  const sheets = [{
+    name: 'Сводка по товарам',
+    cols: cols.map(c=> c.width),
+    rows, freeze: 4, merges
+  }];
+
+  /* Вкладка «Реклама» есть всегда: по дням периода и итог. Если расходов
+     не было — так и написано, а не пустой лист. */
+  const days2 = await adSpendByDay(range);
+  const adRows = [
+    [{v: 'Реклама по дням', s: 1}],
+    [],
+    [{v: 'Дата', s: 2}, {v: 'Сумма, ₽', s: 2}]
+  ];
+  if(days2.length){
+    days2.forEach(d=>{
+      const [y, m, dd] = d.key.split('-').map(Number);
+      adRows.push([{v: xlsxDateSerial(new Date(y, m - 1, dd).getTime()), s: 6}, {v: d.amount, s: 4}]);
+    });
+    const a1 = 4, a2 = 3 + days2.length;
+    adRows.push([{v: 'ИТОГО', s: 7}, {v: days2.reduce((s, d)=> s + d.amount, 0), f: `SUM(B${a1}:B${a2})`, s: 8}]);
+  } else {
+    adRows.push([{v: 'За этот период расходов на рекламу не было', s: 10}]);
+  }
+  sheets.push({name: 'Реклама', cols: [16, 16], rows: adRows, freeze: 3});
+
+  if(owner){
+    const payouts = (await getAllLive('payouts'))
+      .filter(p=> !range || (p.timestamp >= range.start && p.timestamp <= range.end))
+      .sort((a, b)=> a.timestamp - b.timestamp);
+    if(payouts.length){
+      const pRows = [
+        [{v: 'Выплаты партнёрам', s: 1}],
+        [],
+        [{v: 'Дата', s: 2}, {v: 'Партнёр', s: 2}, {v: 'Сумма, ₽', s: 2}, {v: 'Что закрыто', s: 2}]
+      ];
+      payouts.forEach(p=>{
+        pRows.push([
+          {v: xlsxDateSerial(p.timestamp), s: 6},
+          {v: p.employee || 'общий', s: 3},
+          {v: p.amount, s: 4},
+          {v: p.note || '', s: 3}
+        ]);
+      });
+      const p1 = 4, p2 = 3 + payouts.length;
+      pRows.push([{v: 'ИТОГО', s: 7}, {v: '', s: 7},
+        {v: payouts.reduce((s, p)=> s + (Number(p.amount) || 0), 0), f: `SUM(C${p1}:C${p2})`, s: 8}, {v: '', s: 7}]);
+      sheets.push({name: 'Выплаты партнёрам', cols: [16, 22, 16, 48], rows: pRows, freeze: 3});
+    }
+  }
+
+  downloadFile('otchet-tovary-' + reportStamp(range) + '.xlsx', makeXlsx(sheets),
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  toast('Отчёт по товарам выгружен: ' + list.length + ' тов.');
+}
+
+async function exportProductUnits(){
+  const days = currentFinancePeriod;
+  const range = getPeriodRange(days);
+  const hist = await getAllLive('history');
+  const products = await getAllLive('products');
+  const unitDates = allocateUnitLots(hist);
+  const inRange = ts => !range || (ts >= range.start && ts <= range.end);
+  const sales = hist.filter(h=> h.type === 'Расход' && inRange(h.timestamp))
+    .sort((a, b)=> (a.timestamp || 0) - (b.timestamp || 0));
+  const data = [];
+  sales.forEach(h=>{
+    const p = products.find(x=> x.sku === h.sku) || {};
+    const e = opEconomics(h, p);
+    if(!e || !e.qty) return;
+    const dates = unitDates.get(h.uid || ('#' + h.id)) || [];
+    const q = e.qty, per = v => v / q;
+    for(let i = 0; i < q; i++){
+      data.push({
+        date: h.timestamp || 0, time: h.time || '',
+        name: h.name || p.name || h.sku, sku: h.sku, barcode: p.barcode || '', supplier: p.supplier || '',
+        purchase: dates[i] === undefined ? null : dates[i],
+        price: per(e.revenue), cost: per(e.cost), comm: per(e.comm), tax: per(e.tax),
+        pack: per(e.pack), deliv: per(e.delivDiscount)
+      });
+    }
+  });
+  const present = presentDeductions(data);
+  const cols = [
+    {title:'№', width:6, style:5, get:(d, i)=> i + 1},
+    {title:'Дата продажи', width:14, style:6, get:d=> xlsxDateSerial(d.date)},
+    {title:'Время', width:11, style:3, get:d=> d.time},
+    {title:'Товар', width:30, style:3, get:d=> d.name},
+    {title:'SKU', width:16, style:3, get:d=> d.sku},
+    {title:'Штрихкод', width:16, style:3, get:d=> d.barcode},
+    {title:'Поставщик', width:18, style:3, get:d=> d.supplier},
+    {title:'Дата покупки штуки', width:18, style:6, get:d=> unitPurchaseCell(d.purchase)},
+    {title:'Цена продажи, ₽', width:14, style:4, key:'price', sum:8, get:d=> d.price},
+    {title:'Закупка, ₽', width:13, style:4, key:'cost', sum:8, get:d=> d.cost}
+  ];
+  present.forEach(p=> cols.push({title:p.title, width:13, style:4, key:p.src, sum:8, get:d=> d[p.src]}));
+  cols.push({title:'Прибыль чистая, ₽', width:14, style:4, key:'net', sum:8,
+    get:d=> d.price - d.cost - present.reduce((s, p)=> s + (Number(d[p.src]) || 0), 0),
+    f:(rn, L)=> [`${L.price}${rn}`, `${L.cost}${rn}`].concat(present.map(p=> `${L[p.src]}${rn}`)).join('-')});
+
+  const {header, body, tot} = layoutSheet(cols, data, 5);
+  const last = xlsxColName(cols.length - 1);
+  const rows = [
+    [{v: 'Продажи поштучно', s: 1}],
+    [{v: 'Период: ' + reportPeriodLabel(range), s: 10}],
+    [],
+    header
+  ].concat(body);
+  rows.push(tot || [{v: 'За этот период продаж не было', s: 10}]);
+  const sheets = [{
+    name: 'Продажи поштучно',
+    cols: cols.map(c=> c.width),
+    rows, freeze: 4, merges: ['A1:' + last + '1', 'A2:' + last + '2']
+  }];
+  downloadFile('otchet-poshtuchno-' + reportStamp(range) + '.xlsx', makeXlsx(sheets),
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  toast('Поштучный отчёт выгружен: ' + data.length + ' шт');
+}
+
+/* Учёт возвратов за выбранный период — по каждому товару: сколько вернул
+   покупатель, сколько отправили снова и сколько оказалось повреждёнными.
+   «Сейчас ждут» — открытые возвраты на сегодня (за всё время), их не
+   отменяет смена периода. Источник тот же, что у вкладки «Возвраты». */
+async function renderReturnsReport(days){
+  const box = document.getElementById('financeReturns');
+  if(!box) return;
+  const hist = await getAllLive('history');
+  const range = getPeriodRange(days);
+  const inRange = ts => !range || (ts >= range.start && ts <= range.end);
+  const rows = {};
+  hist.forEach(h=>{
+    if(h.type !== 'Корректировка' || !h.snap || !h.snap.isReturn || !inRange(h.timestamp)) return;
+    const r = rows[h.sku] || (rows[h.sku] = {name: h.name || h.sku, got:0, reship:0, damaged:0});
+    const q = Math.abs(Number(h.qty)) || Math.abs(Number(h.delta)) || 0;
+    if(!h.snap.returnClose) r.got += q;
+    else if(h.snap.returnAction === 'reship') r.reship += q;
+    else if(h.snap.returnAction === 'damaged') r.damaged += q;
+  });
+  const waiting = await returnsBySku();
+  const list = Object.entries(rows).sort((a,b)=> b[1].got - a[1].got);
+  if(!list.length){
+    box.innerHTML = emptyLine('i-inbox', 'За этот период возвратов не было');
+    return;
+  }
+  const totalGot = list.reduce((s,[,r])=> s + r.got, 0);
+  box.innerHTML = list.map(([sku,r])=>{
+    const open = (waiting[sku] && waiting[sku].ret) || 0;
+    return `<div class="row-item">
+      <div class="rmain"><div class="rname">${escapeHtml(r.name)}</div>
+        <div class="rmeta">отправили снова ${r.reship} шт · повреждены ${r.damaged} шт · сейчас ждут ${open} шт</div></div>
+      <span class="rval">${r.got} шт</span>
+    </div>`;
+  }).join('') + `<div class="t-caption" style="margin-top:8px;color:var(--text-tertiary);">
+    Всего вернули за период: ${totalGot} шт. «Вернули» — сколько штук пришло от покупателя за период.
+    «Отправили снова» — ушли покупателю повторно, списаны со склада. «Повреждены» — перенесены в «Повреждённые».
+    «Сейчас ждут» — возвраты, которые ещё не отправлены, за всё время.</div>`;
 }
 
 /* Ключ дня по местному времени. Через toISOString получался бы день по
