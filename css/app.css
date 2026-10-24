@@ -870,3 +870,33 @@ header.top .sub #productCountPill{flex:none;font-weight:600;color:var(--text);}
 @keyframes syncPulse{50%{opacity:.35;}}
 .status-pill{display:none;}
 .auth-forgot{margin:6px 0 4px;padding:12px 14px;border-radius:14px;background:var(--accent-soft);color:var(--text);font-size:13.5px;line-height:1.45;text-align:left;}
+
+/* ============================================================
+   СТИЛЬ «БУХГАЛТЕРСКАЯ КНИГА» (design-taste-frontend, app-screens)
+   Фон — холодный серо-синий, карточки белые с 1px-линией, без теней
+   в покое. Цвет только на данных (индиго) и на редких сигналах; главная
+   кнопка — почти чёрная. Скругления 8/6 px. Заголовки — тот же шрифт,
+   что и текст; Unbounded и JetBrains Mono не используются.
+   ============================================================ */
+:root{
+  --ground-flat:#F2F4F7;
+  --accent-grad:#4338FF;
+  --spark:#4338FF;
+  --cat-2:#8A8F9C; --cat-3:#B4B9C4; --cat-4:#5F6368; --cat-5:#D1D5DB; --cat-6:#9AA1AE;
+  --shadow-card:none;
+  --r-sm:6px; --r-md:8px; --r-lg:8px;
+  --border:#E4E7ED; --border-soft:#EEF0F4;
+}
+body{background:var(--ground-flat);background-attachment:scroll;}
+h1,h2,h3,.t-display,.t-h1,.cal-title,.order-group h4{font-family:var(--font-body);font-weight:600;letter-spacing:0;}
+.card{background:#FFFFFF;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:none;}
+.btn.primary{background:#1D1F20;color:#FFFFFF;box-shadow:none;}
+.btn.primary:hover{background:#000000;}
+.hero-bar.current{box-shadow:none;}
+/* быстрые действия в строках — нейтральные: цвет остаётся только на данных */
+.icon-btn.in,.icon-btn.out,.icon-btn.edit{background:#F2F4F7;border-color:transparent;color:#1D1F20;}
+/* главная кнопка — почти чёрная, без цвета (индиго — только данные) */
+.btn.primary,.btn.primary:not(:disabled),.btn.primary:not(:disabled):hover,.btn.primary:not(:disabled):active{background:#1D1F20 !important;color:#FFFFFF;}
+/* значки сегментов кольца и доли — нейтральные, без цветных плиток */
+.cat-icon{background:#F2F4F7 !important;color:#1D1F20 !important;}
+.cat-share{background:#F2F4F7 !important;color:#1D1F20 !important;}
