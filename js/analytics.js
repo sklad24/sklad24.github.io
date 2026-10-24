@@ -6,7 +6,7 @@
 const DAY_MS = 24*60*60*1000;
 
 async function salesRows(){
-  const hist = await getAllLive('history');
+  const hist = applyReturnCuts(await getAllLive('history'));
   const products = await getAll('products');
   const bySku = {}; products.forEach(p=> bySku[p.sku] = p);
   const seen = new Set(), rows = [];
