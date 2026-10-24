@@ -255,7 +255,10 @@ async function resolveReturn(id, checked, checkboxEl){
   if(!h){ await renderReturns(); return; }
   const qty = Math.abs(h.delta);
   const p = await get('products', h.sku);
-  const closeUid = await logHistory('Корректировка', h.barcode, p || {sku:h.sku, name:h.name, totalStock:0}, qty, {
+  /* У клиентов повторная отправка — обычный расход со склада (он попадает в
+     «Расходы» и отчёты). На главном складе остаётся Корректировкой, как было. */
+  const closeType = isFullWorkspace() ? 'Корректировка' : 'Расход';
+  const closeUid = await logHistory(closeType, h.barcode, p || {sku:h.sku, name:h.name, totalStock:0}, qty, {
     delta: -qty,
     extra: {isReturn:true, returnClose:true, returnRef: h.uid, returnAction:'reship'}
   });
