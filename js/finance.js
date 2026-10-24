@@ -219,7 +219,7 @@ async function applyCalRange(){
 }
 
 async function computeFinance(days){
-  const hist = await getAllLive('history');
+  const hist = applyReturnCuts(await getAllLive('history'));
   const products = await getAllLive('products');
   let filtered;
   if(days===null){
@@ -399,7 +399,7 @@ async function renderFinance(days, btnEl){
    Период — тот, что выбран на вкладке «Расходы».
    ============================================================ */
 async function buildProductReport(days){
-  const hist = await getAllLive('history');
+  const hist = applyReturnCuts(await getAllLive('history'));
   const products = await getAllLive('products');
   const range = getPeriodRange(days);
   const inRange = ts => !range || (ts >= range.start && ts <= range.end);
@@ -649,10 +649,10 @@ async function exportProductReport(){
 async function exportProductUnits(){
   const days = currentFinancePeriod;
   const range = getPeriodRange(days);
-  const hist = await getAllLive('history');
+  const hist = applyReturnCuts(await getAllLive('history'));
   const products = await getAllLive('products');
   const inRange = ts => !range || (ts >= range.start && ts <= range.end);
-  const sales = hist.filter(h=> h.type === 'Расход' && inRange(h.timestamp))
+  const sales =hist.filter(h=> h.type === 'Расход' && inRange(h.timestamp))
     .sort((a, b)=> (a.timestamp || 0) - (b.timestamp || 0));
   const data = [];
   sales.forEach(h=>{
@@ -977,7 +977,7 @@ function renderFinSubTab(){
 }
 
 async function generateABC(){
-  const hist = await getAllLive('history');
+  const hist = applyReturnCuts(await getAllLive('history'));
   const products = await getAllLive('products');
   const bySku = {};
   hist.filter(h=> h.type==='Расход' && (!abcRange || (h.timestamp>=abcRange.start && h.timestamp<=abcRange.end))).forEach(h=>{
