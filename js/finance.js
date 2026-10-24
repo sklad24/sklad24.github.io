@@ -266,14 +266,14 @@ function renderFinanceRing(f, adSpend, netProfitFinal, partnerComm){
      цифра здесь — чистая прибыль, она же в центре. */
   const segments = [
     {name:'Чистая прибыль', value:netProfitFinal, color:'#4338FF', icon:'i-check-circle'},
-    {name:'Себестоимость', value:f.cogs, color:'#10B981', icon:'i-box'},
-    {name:'Валовая прибыль', value:f.grossProfit, color:'#FF9F43', icon:'i-chart'},
-    {name:'Налог', value:f.taxAmount, color:'#F0508C', icon:'i-alert'},
-    {name:'Комиссия маркетплейса', value:f.commissionAmount, color:'#F5C518', icon:'i-wallet'},
-    {name:'Комиссия партнёрам', value:partnerComm || 0, color:'#F2683C', icon:'i-coins'},
-    {name:'Упаковка', value:f.packagingAmount, color:'#14B8A6', icon:'i-box'},
-    {name:'Скидка на доставку', value:f.deliveryDiscountAmount, color:'#A07BFF', icon:'i-out'},
-    {name:'Реклама', value:adSpend, color:'#C084FC', icon:'i-chart'},
+    {name:'Себестоимость', value:f.cogs, color:'#8A8F9C', icon:'i-box'},
+    {name:'Валовая прибыль', value:f.grossProfit, color:'#B4B9C4', icon:'i-chart'},
+    {name:'Налог', value:f.taxAmount, color:'#5F6368', icon:'i-alert'},
+    {name:'Комиссия маркетплейса', value:f.commissionAmount, color:'#D1D5DB', icon:'i-wallet'},
+    {name:'Комиссия партнёрам', value:partnerComm || 0, color:'#9AA1AE', icon:'i-coins'},
+    {name:'Упаковка', value:f.packagingAmount, color:'#E4E7ED', icon:'i-box'},
+    {name:'Скидка на доставку', value:f.deliveryDiscountAmount, color:'#C5CAD3', icon:'i-out'},
+    {name:'Реклама', value:adSpend, color:'#7A8090', icon:'i-chart'},
   ];
   segments.forEach(s=>{ s.arcValue = Math.max(0, s.value); });
 
@@ -443,7 +443,7 @@ async function adSpendByDay(range){
   manual.forEach(a=>{ byDay[a.dateKey] = Number(a.amount) || 0; });
   const out = [];
   if(!range) return out;
-  const day = new Date(range.start); day.setHours(12,0,0,0);
+  const day = new Date(range.start); day.setHours(0,0,0,0);   /* с начала дня: иначе сегодняшний день до полудня выпадает */
   const last = new Date(range.end);
   for(let guard = 0; day <= last && guard < 4000; guard++){
     const key = dateKeyOf(day);
@@ -792,7 +792,7 @@ async function computeAdSpendForPeriod(days){
 
   let total = 0;
   const day = new Date(range.start);
-  day.setHours(12,0,0,0);
+  day.setHours(0,0,0,0);
   const last = new Date(range.end);
   /* предохранитель: перебор по дням не должен уходить в бесконечность,
      если период задан странно */
