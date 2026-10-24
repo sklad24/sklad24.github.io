@@ -37,6 +37,40 @@ function opEconomics(h, product){
           net: gross - tax - comm - pack - delivDiscount};
 }
 
+/* Возврат отменяет продажу: у клиентов штука, которую вернули, в расчётах
+   как будто и не продавалась. Каждый возврат (Корректировка с isReturn, пока
+   не закрыт парой) съедает одну штуку того же товара из ближайшей более ранней
+   продажи, у которой ещё что-то осталось. В самой истории ничего не меняется —
+   режем только копии записей для расчётов. На главном устройстве не режем. */
+function applyReturnCuts(hist){
+  if(isFullWorkspace()) return hist;
+  const key = h=> h.uid || ('#'+h.id);
+  const bySku = {};
+  hist.forEach(h=>{
+    if(h.type === 'Расход' || (h.type === 'Корректировка' && h.snap && h.snap.isReturn && !h.snap.returnClose)){
+      (bySku[h.sku] = bySku[h.sku] || []).push(h);
+    }
+  });
+  const cut = {};
+  Object.values(bySku).forEach(list=>{
+    list.sort((a, b)=> (a.timestamp || 0) - (b.timestamp || 0));
+    const open = [];
+    list.forEach(h=>{
+      if(h.type === 'Расход'){ open.push(h); return; }
+      let n = Math.abs(Number(h.delta)) || 0;
+      while(n > 0 && open.length){
+        const s = open[open.length - 1];
+        const left = (Number(s.qty) || 0) - (cut[key(s)] || 0);
+        const take = Math.min(n, left);
+        cut[key(s)] = (cut[key(s)] || 0) + take;
+        n -= take;
+        if(left - take <= 0) open.pop();
+      }
+    });
+  });
+  return hist.map(h=> cut[key(h)] ? Object.assign({}, h, {qty: (Number(h.qty) || 0) - cut[key(h)]}) : h);
+}
+
 async function logHistory(type, barcode, p, qty, opts){
   opts = opts || {};
   const now = new Date();
