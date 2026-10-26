@@ -10,11 +10,19 @@ let db;
 const DB_BASE = 'pro_fonari_sklad';
 const WS_ACTIVE_KEY = 'sklad-active-ws', WS_BASE_KEY = 'sklad-base-ws';
 function lsGet(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
+/* Аккаунты на одном устройстве («Склад 1», «Склад 2»): переключаются без
+   выхода — каждый со своим входом, своими ключами и своей базой. Первый
+   аккаунт (a1) живёт под прежними именами, остальные — с суффиксом «@a2»,
+   «@a3»… Выбранный — sklad-active-slot. */
+const SLOT_ACTIVE_KEY = 'sklad-active-slot';
+function activeSlot(){ return lsGet(SLOT_ACTIVE_KEY) || 'a1'; }
+function slotKey(name){ const s = activeSlot(); return s === 'a1' ? name : name + '@' + s; }
+const SLOT_DB = activeSlot() === 'a1' ? DB_BASE : DB_BASE + '__acc_' + activeSlot();
 function dbNameForWs(ws){
-  const base = lsGet(WS_BASE_KEY);
-  return (!ws || !base || ws === base) ? DB_BASE : DB_BASE + '__ws_' + ws;
+  const base = lsGet(slotKey(WS_BASE_KEY));
+  return (!ws || !base || ws === base) ? SLOT_DB : SLOT_DB + '__ws_' + ws;
 }
-const DB_NAME = dbNameForWs(lsGet(WS_ACTIVE_KEY));
+const DB_NAME = dbNameForWs(lsGet(slotKey(WS_ACTIVE_KEY)));
 window.DB_NAME_IN_USE = DB_NAME;
 const DB_VERSION = 5;
 
@@ -461,12 +469,13 @@ async function wipeAccountData(){
     const list = indexedDB.databases ? await indexedDB.databases() : [];
     for(const d of list){
       if(!d.name || d.name === DB_NAME) continue;
-      if(d.name === DB_BASE || d.name.indexOf(DB_BASE + '__ws_') === 0) indexedDB.deleteDatabase(d.name);
+      if(d.name === SLOT_DB || d.name.indexOf(SLOT_DB + '__ws_') === 0) indexedDB.deleteDatabase(d.name);
     }
   }catch(e){}
   try{
-    ['sklad-master-device','sklad-membership','sklad-ws-list','sklad-full-ws',WS_ACTIVE_KEY,WS_BASE_KEY]
-      .forEach(k=> localStorage.removeItem(k));
+    ['sklad-membership','sklad-ws-list','sklad-full-ws',WS_ACTIVE_KEY,WS_BASE_KEY]
+      .forEach(k=> localStorage.removeItem(slotKey(k)));
+    localStorage.removeItem('sklad-master-device');
   }catch(e){}
 }
 async function localAccountUid(){
