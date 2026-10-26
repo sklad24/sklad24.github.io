@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=115">
+<link rel="stylesheet" href="css/app.css?v=116">
 </head>
 <body>
 
@@ -205,6 +205,9 @@
         </div>
         <p>Все товары, остатки и штрихкоды</p>
       </div>
+
+      <!-- Склады на этом устройстве: переключение без выхода из аккаунта -->
+      <div class="period-seg slot-seg" id="slotSeg" role="tablist" aria-label="Склады" style="margin-bottom:var(--sp-2);"></div>
 
       <div class="period-seg stock-tabs" id="stockTabSeg" role="tablist">
         <button data-v="active" class="active" onclick="setStockTab('active')">В продаже <span class="tab-count" id="stockCntActive"></span></button>
@@ -983,20 +986,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=115"></script>
-<script src="js/db.js?v=115"></script>
-<script src="js/sync-ui.js?v=115"></script>
-<script src="js/input.js?v=115"></script>
-<script src="js/returns-scan.js?v=115"></script>
-<script src="js/sounds.js?v=115"></script>
-<script src="js/stock-history.js?v=115"></script>
-<script src="js/xlsx-writer.js?v=115"></script>
-<script src="js/finance.js?v=115"></script>
-<script src="js/balance.js?v=115"></script>
-<script src="js/analytics.js?v=115"></script>
-<script src="js/settings-roles.js?v=115"></script>
-<script src="js/backup-labels.js?v=115"></script>
+<script src="sync-config.js?v=116"></script>
+<script src="js/db.js?v=116"></script>
+<script src="js/sync-ui.js?v=116"></script>
+<script src="js/input.js?v=116"></script>
+<script src="js/returns-scan.js?v=116"></script>
+<script src="js/sounds.js?v=116"></script>
+<script src="js/stock-history.js?v=116"></script>
+<script src="js/xlsx-writer.js?v=116"></script>
+<script src="js/finance.js?v=116"></script>
+<script src="js/balance.js?v=116"></script>
+<script src="js/analytics.js?v=116"></script>
+<script src="js/settings-roles.js?v=116"></script>
+<script src="js/backup-labels.js?v=116"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=115"></script>
+<script src="sync.js?v=116"></script>
 </body>
 </html>
