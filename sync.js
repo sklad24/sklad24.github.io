@@ -65,7 +65,7 @@
     if(client) return client;
     if(!CFG.url || !CFG.key || !window.supabase) return null;
     client = window.supabase.createClient(CFG.url, CFG.key, {
-      auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sklad-auth' }
+      auth: { persistSession: true, autoRefreshToken: true, storageKey: slotKey('sklad-auth') }
     });
     return client;
   }
@@ -110,6 +110,7 @@
       rememberLogin(login);
       const user = await currentUser();
       const switched = user ? await claimDevice(user, prevLogin) : false;
+      commitPendingSlot(login);
       return {ok:true, created, switched};
     };
     const register = async ()=>{
@@ -168,21 +169,20 @@
      показывает интерфейс владельца (все вкладки), пока сходит на сервер за
      составом. С кэшем нужная роль применяется сразу, а сервер только
      подтверждает. */
-  const MEMBERSHIP_CACHE_KEY = 'sklad-membership';
   function readCachedMembership(){
     try{
-      const m = JSON.parse(localStorage.getItem(MEMBERSHIP_CACHE_KEY) || 'null');
+      const m = JSON.parse(localStorage.getItem(slotKey('sklad-membership')) || 'null');
       return (m && m.owner_id) ? m : null;
     }catch(e){ return null; }
   }
   function writeCachedMembership(m){
     try{
       if(m && m.owner_id){
-        localStorage.setItem(MEMBERSHIP_CACHE_KEY, JSON.stringify({
+        localStorage.setItem(slotKey('sklad-membership'), JSON.stringify({
           owner_id: m.owner_id, role: m.role || 'employee', name: m.name || ''
         }));
       } else {
-        localStorage.removeItem(MEMBERSHIP_CACHE_KEY);
+        localStorage.removeItem(slotKey('sklad-membership'));
       }
     }catch(e){}
   }
@@ -192,9 +192,8 @@
   /* Складов у человека может быть несколько: свой (если он владелец) и
      склады дропшиперов, к которым он подключён партнёром. Список — для
      переключателя; выбранный склад хранится на устройстве (sklad-active-ws). */
-  const WS_LIST_KEY = 'sklad-ws-list';
   function readWsList(){
-    try{ const l = JSON.parse(localStorage.getItem(WS_LIST_KEY) || 'null'); return Array.isArray(l) ? l : []; }catch(e){ return []; }
+    try{ const l = JSON.parse(localStorage.getItem(slotKey('sklad-ws-list')) || 'null'); return Array.isArray(l) ? l : []; }catch(e){ return []; }
   }
   let wsList = readWsList();   // [{id:'own'|owner_id, name, role}]
 
@@ -228,15 +227,15 @@
       if(hasOwn) list.push({id:'own', name:'Мой склад', role:'owner'});
       rows.forEach((x, i)=> list.push({id:x.owner_id, name: names[x.owner_id] || ('Склад ' + (i + 1)), role: x.role || 'employee', member: x}));
       wsList = list.map(w=> ({id:w.id, name:w.name, role:w.role}));
-      try{ localStorage.setItem(WS_LIST_KEY, JSON.stringify(wsList)); }catch(e){}
+      try{ localStorage.setItem(slotKey('sklad-ws-list'), JSON.stringify(wsList)); }catch(e){}
 
       // какой склад открыт: выбранный ранее, если он ещё доступен, иначе первый
       let active = '';
-      try{ active = localStorage.getItem('sklad-active-ws') || ''; }catch(e){}
+      try{ active = localStorage.getItem(slotKey(WS_ACTIVE_KEY)) || ''; }catch(e){}
       if(!list.some(w=> w.id === active)) active = list[0].id;
       try{
-        if(!localStorage.getItem('sklad-base-ws')) localStorage.setItem('sklad-base-ws', active);  // текущая база — этого склада
-        localStorage.setItem('sklad-active-ws', active);
+        if(!localStorage.getItem(slotKey(WS_BASE_KEY))) localStorage.setItem(slotKey(WS_BASE_KEY), active);  // текущая база — этого склада
+        localStorage.setItem(slotKey(WS_ACTIVE_KEY), active);
       }catch(e){}
       const cur = list.find(w=> w.id === active);
       membership = cur.member || null;           // достоверный ответ
@@ -270,12 +269,60 @@
     return error ? {ok:false, error:error.message} : {ok:true};
   }
   function workspaces(){ return wsList.slice(); }
-  function activeWorkspace(){ try{ return localStorage.getItem('sklad-active-ws') || ''; }catch(e){ return ''; } }
+  function activeWorkspace(){ try{ return localStorage.getItem(slotKey(WS_ACTIVE_KEY)) || ''; }catch(e){ return ''; } }
   function switchWorkspace(id){
     if(!wsList.some(w=> w.id === id)) return false;
-    try{ localStorage.setItem('sklad-active-ws', id); }catch(e){}
+    try{ localStorage.setItem(slotKey(WS_ACTIVE_KEY), id); }catch(e){}
     location.reload();
     return true;
+  }
+
+  /* Аккаунты на устройстве («Склад 1», «Склад 2»): переключение — перезагрузка
+     с другим входом. Список и выбранный — общие для устройства (не синхронизируются). */
+  const SLOTS_KEY = 'sklad-slots', SLOT_PENDING_KEY = 'sklad-pending-slot', SLOT_PREV_KEY = 'sklad-prev-slot';
+  function slots(){
+    try{ const l = JSON.parse(localStorage.getItem(SLOTS_KEY) || 'null'); return Array.isArray(l) && l.length ? l : [{id:'a1'}]; }
+    catch(e){ return [{id:'a1'}]; }
+  }
+  function saveSlots(l){ try{ localStorage.setItem(SLOTS_KEY, JSON.stringify(l)); }catch(e){} }
+  function activeSlotId(){ return activeSlot(); }
+  function pendingSlot(){ try{ return localStorage.getItem(SLOT_PENDING_KEY) || ''; }catch(e){ return ''; } }
+  function switchSlot(id){
+    if(!slots().some(s=> s.id === id)) return false;
+    try{ localStorage.setItem(SLOT_ACTIVE_KEY, id); }catch(e){}
+    location.reload();
+    return true;
+  }
+  /* Новый склад: отмечаем, что ждём вход в него, и открываем его (пустой вход). */
+  function beginAddSlot(){
+    const l = slots();
+    const n = Math.max(1, ...l.map(s=> Number(String(s.id).slice(1)) || 1)) + 1;
+    const id = 'a' + n;
+    try{
+      localStorage.setItem(SLOT_PREV_KEY, activeSlot());
+      localStorage.setItem(SLOT_PENDING_KEY, id);
+      localStorage.setItem(SLOT_ACTIVE_KEY, id);
+    }catch(e){}
+    location.reload();
+  }
+  /* Передумали входить в новый склад — возвращаемся туда, где были. */
+  function cancelAddSlot(){
+    let prev = 'a1';
+    try{
+      prev = localStorage.getItem(SLOT_PREV_KEY) || 'a1';
+      localStorage.removeItem(SLOT_PENDING_KEY);
+      localStorage.removeItem(SLOT_PREV_KEY);
+      localStorage.setItem(SLOT_ACTIVE_KEY, prev);
+    }catch(e){}
+    location.reload();
+  }
+  /* Вошли в ожидаемый новый склад — он появляется в списке. */
+  function commitPendingSlot(title){
+    const id = pendingSlot();
+    if(!id || id !== activeSlot()) return;
+    const l = slots();
+    if(!l.some(s=> s.id === id)) saveSlots([...l, {id, title: title || ''}]);
+    try{ localStorage.removeItem(SLOT_PENDING_KEY); localStorage.removeItem(SLOT_PREV_KEY); }catch(e){}
   }
 
   function role(){ return membership ? (membership.role || 'employee') : 'owner'; }
@@ -316,7 +363,7 @@
     });
     if(error) return {ok:false, error: error.message};
     // только что подключённый склад сразу становится открытым
-    if(data){ try{ localStorage.setItem('sklad-active-ws', data); }catch(e){} }
+    if(data){ try{ localStorage.setItem(slotKey(WS_ACTIVE_KEY), data); }catch(e){} }
     await resolveMembership();
     return {ok:true, ownerId: data};
   }
@@ -1084,6 +1131,7 @@
     // роли и кабинет сотрудника
     resolveMembership, role, memberName, myMemberId, workspaceOwnerId,
     joinWorkspace, listMembers, removeMember, workspaces, activeWorkspace, switchWorkspace, isAdmin, adminListAccounts, adminSetPassword,
-    ensureInviteCode, rotateInviteCode, inviteCode: currentInviteCode
+    ensureInviteCode, rotateInviteCode, inviteCode: currentInviteCode,
+    slots, activeSlotId, switchSlot, beginAddSlot, cancelAddSlot, commitPendingSlot, pendingSlot
   };
 })();
