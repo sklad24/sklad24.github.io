@@ -176,6 +176,7 @@ async function moveSelectedToStop(toStop){
 }
 
 async function renderStock(){
+  renderSlotSeg();
   const emp = isEmployee();
   const everything = await getAllLive('products');
   const tab = emp ? 'active' : stockTab;
