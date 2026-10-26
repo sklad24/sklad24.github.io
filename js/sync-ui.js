@@ -96,8 +96,12 @@ function openPinModal(mode){
   // на основном входе — все пути; в остальных шагах только «Назад ко входу»
   document.querySelectorAll('.auth-skip').forEach(b=>{ b.style.display = mode === 'login' ? 'block' : 'none'; });
   // «Назад»: из смены пароля — обратно в приложение, из остальных шагов — ко входу
-  document.getElementById('authBackBtn').hidden = (mode === 'login');
-  document.getElementById('authBackText').textContent = isChange ? 'Назад' : 'Назад ко входу';
+  document.getElementById('authBackBtn').hidden = (mode === 'login') && !isAddingSlot();
+  document.getElementById('authBackText').textContent = isAddingSlot() && mode === 'login' ? 'Назад к прежнему складу' : (isChange ? 'Назад' : 'Назад ко входу');
+  if(isAddingSlot() && mode === 'login'){
+    document.getElementById('pinTitle').textContent = 'Вход в другой склад';
+    document.getElementById('pinHint').textContent = 'Войдите в склад, который хотите добавить. Тот, где вы работали, останется открыт — переключаться можно сверху, в «Складе».';
+  }
 
   bg.dataset.emp = mode === 'partner' ? '1' : '0';
   const ef = document.getElementById('empFields'); if(ef) ef.hidden = mode !== 'partner';
@@ -110,9 +114,13 @@ function openPinModal(mode){
     document.getElementById(focusId).focus();
   }, 60);
 }
+function isAddingSlot(){
+  return !!(window.Sync && Sync.pendingSlot && Sync.pendingSlot());
+}
 function authBack(){
   const bg = document.getElementById('pinModalBg');
   if(bg && bg.dataset.mode === 'change') closePinModal();
+  else if(isAddingSlot()) Sync.cancelAddSlot();
   else openPinModal('login');
 }
 function showForgotHint(){
