@@ -309,6 +309,24 @@ function printQRForModal(){
    Партнёр может работать на нескольких дропшиперов. Список складов и
    выбранный — в Sync (sklad-ws-list / sklad-active-ws); смена склада
    перезапускает приложение на базе этого склада. */
+/* Склады на этом устройстве: полоска над товарами. Тап — перейти на другой
+   склад, не выходя из аккаунта. «+ Склад» — войти в ещё один. */
+function renderSlotSeg(){
+  const el = document.getElementById('slotSeg');
+  if(!el || !window.Sync || !Sync.slots) return;
+  const active = Sync.activeSlotId();
+  el.innerHTML = Sync.slots().map((s, i)=> {
+    const on = s.id === active;
+    return `<button type="button" class="${on ? 'active' : ''}"${on ? ' aria-selected="true"' : ''} onclick="pickSlot('${escapeAttr(s.id)}')">Склад ${i + 1}</button>`;
+  }).join('') + `<button type="button" onclick="addSlot()"><svg class="icon"><use href="#i-plus"/></svg>Склад</button>`;
+}
+function pickSlot(id){
+  if(id === Sync.activeSlotId()) return;
+  toast('Открываю склад…');
+  Sync.switchSlot(id);
+}
+function addSlot(){ Sync.beginAddSlot(); }
+
 function renderWsSwitch(){
   const btn = document.getElementById('wsSwitchBtn');
   if(!btn || !window.Sync || !Sync.workspaces) return;
@@ -351,9 +369,9 @@ async function joinAnotherWorkspace(){
 /* ---- полный кабинет («Баланс», ставки, начисления) ----
    Только у склада хозяина сервиса и его партнёров. Признак помним на
    устройстве, чтобы при запуске без сети не мелькал лишний раздел. */
-function isFullWorkspace(){ try{ return localStorage.getItem('sklad-full-ws') === '1'; }catch(e){ return false; } }
+function isFullWorkspace(){ try{ return localStorage.getItem(slotKey('sklad-full-ws')) === '1'; }catch(e){ return false; } }
 function setFullWorkspace(on){
-  try{ localStorage.setItem('sklad-full-ws', on ? '1' : '0'); }catch(e){}
+  try{ localStorage.setItem(slotKey('sklad-full-ws'), on ? '1' : '0'); }catch(e){}
   document.body.classList.toggle('is-full', !!on);
   const active = document.querySelector('main section.active');
   if(!on && active && active.id === 'sec-balance') showSection('stock', document.querySelector('nav.bottom button[onclick*="\'stock\'"]'));
