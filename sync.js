@@ -279,7 +279,7 @@
 
   /* Аккаунты на устройстве («Склад 1», «Склад 2»): переключение — перезагрузка
      с другим входом. Список и выбранный — общие для устройства (не синхронизируются). */
-  const SLOTS_KEY = 'sklad-slots', SLOT_PENDING_KEY = 'sklad-pending-slot', SLOT_PREV_KEY = 'sklad-prev-slot';
+  const SLOTS_KEY = 'sklad-slots', SLOT_PENDING_KEY = 'sklad-pending-slot', SLOT_PREV_KEY = 'sklad-prev-slot', SLOT_PENDING_FULL_KEY = 'sklad-pending-full';
   function slots(){
     try{ const l = JSON.parse(localStorage.getItem(SLOTS_KEY) || 'null'); return Array.isArray(l) && l.length ? l : [{id:'a1'}]; }
     catch(e){ return [{id:'a1'}]; }
@@ -301,6 +301,8 @@
     try{
       localStorage.setItem(SLOT_PREV_KEY, activeSlot());
       localStorage.setItem(SLOT_PENDING_KEY, id);
+      /* Склад, который добавляет владелец, — полный (как основной: «Баланс», партнёры, проценты). */
+      localStorage.setItem(SLOT_PENDING_FULL_KEY, membership ? '0' : '1');
       localStorage.setItem(SLOT_ACTIVE_KEY, id);
     }catch(e){}
     location.reload();
@@ -312,6 +314,7 @@
       prev = localStorage.getItem(SLOT_PREV_KEY) || 'a1';
       localStorage.removeItem(SLOT_PENDING_KEY);
       localStorage.removeItem(SLOT_PREV_KEY);
+      localStorage.removeItem(SLOT_PENDING_FULL_KEY);
       localStorage.setItem(SLOT_ACTIVE_KEY, prev);
     }catch(e){}
     location.reload();
@@ -321,8 +324,17 @@
     const id = pendingSlot();
     if(!id || id !== activeSlot()) return;
     const l = slots();
-    if(!l.some(s=> s.id === id)) saveSlots([...l, {id, title: title || ''}]);
-    try{ localStorage.removeItem(SLOT_PENDING_KEY); localStorage.removeItem(SLOT_PREV_KEY); }catch(e){}
+    let full = false;
+    try{ full = localStorage.getItem(SLOT_PENDING_FULL_KEY) === '1'; }catch(e){}
+    if(!l.some(s=> s.id === id)) saveSlots([...l, {id, title: title || '', full}]);
+    try{
+      localStorage.removeItem(SLOT_PENDING_KEY); localStorage.removeItem(SLOT_PREV_KEY); localStorage.removeItem(SLOT_PENDING_FULL_KEY);
+    }catch(e){}
+  }
+  /* Открытый склад добавлен владельцем как полный. */
+  function slotIsFull(){
+    const s = slots().find(x=> x.id === activeSlot());
+    return !!(s && s.full);
   }
 
   function role(){ return membership ? (membership.role || 'employee') : 'owner'; }
@@ -1132,6 +1144,6 @@
     resolveMembership, role, memberName, myMemberId, workspaceOwnerId,
     joinWorkspace, listMembers, removeMember, workspaces, activeWorkspace, switchWorkspace, isAdmin, adminListAccounts, adminSetPassword,
     ensureInviteCode, rotateInviteCode, inviteCode: currentInviteCode,
-    slots, activeSlotId, switchSlot, beginAddSlot, cancelAddSlot, commitPendingSlot, pendingSlot
+    slots, activeSlotId, switchSlot, beginAddSlot, cancelAddSlot, commitPendingSlot, pendingSlot, slotIsFull
   };
 })();
