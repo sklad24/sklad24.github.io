@@ -9,6 +9,7 @@ const CHROME_MENUS = {
     {icon:'i-plus',     title:'Добавить товар',        action:'openProductModal()'},
     {sep:true},
     {icon:'i-printer',  title:'Распечатать штрихкоды', action:'printBarcodesSelected()'},
+    ...(isEmployee() ? [] : [{icon:'i-swap', title:'Перенести весь товар на другой склад', action:'openTransferAll()'}]),
     {icon:'i-download', title:'Накладная поставщику',  action:'exportSupplierInvoice()', needsSelection:true},
     stockTab === 'stop'
       ? {icon:'i-play',  title:'Вернуть в продажу',    action:'moveSelectedToStop(false)', needsSelection:true}
