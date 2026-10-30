@@ -293,6 +293,7 @@ async function initSync(){
   window.refreshAfterSync = refreshAfterSync;
 
   const started = await Sync.start();
+  if(started && await applyIncomingTransfers()) await renderStock();
   await moveToNewAddressIfOld(started);
   if(!started) openPinModal('login');
   await applyRoleUI();
