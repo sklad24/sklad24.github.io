@@ -90,7 +90,7 @@ async function applyRoleUI(){
   renderWsSwitch();
   // «Баланс» и начисления — только в складах из fullWorkspaces
   // без входа (только это устройство) признак не трогаем — помним прежний
-  try{ const ws = await Sync.workspaceOwnerId(); if(ws) setFullWorkspace((window.SYNC_CONFIG && SYNC_CONFIG.fullWorkspaces || []).includes(ws)); }catch(e){}
+  try{ const ws = await Sync.workspaceOwnerId(); if(ws) setFullWorkspace((window.SYNC_CONFIG && SYNC_CONFIG.fullWorkspaces || []).includes(ws) || Sync.slotIsFull()); }catch(e){}
   // служебные кнопки — только хозяину сервиса (и только в своём складе)
   const admin = !emp && window.Sync && Sync.isAdmin ? await Sync.isAdmin() : false;
   document.body.classList.toggle('is-admin', admin);
@@ -326,6 +326,80 @@ function pickSlot(id){
   Sync.switchSlot(id);
 }
 function addSlot(){ Sync.beginAddSlot(); }
+
+/* Перенос всего товара на другой склад. Списывается здесь (Корректировкой,
+   не продажей — выручка и выплаты не меняются), а на том складе приходует
+   при первом открытии. Очередь переносов общая для устройства. */
+const TRANSFER_KEY = 'sklad-transfers', TRANSFER_DONE_KEY = 'sklad-transfers-done';
+function readTransferKey(k){
+  try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return Array.isArray(v) ? v : []; }catch(e){ return []; }
+}
+function slotNumber(id){ return Sync.slots().findIndex(s=> s.id === id) + 1; }
+function openTransferAll(){
+  if(isEmployee()) return;
+  const others = Sync.slots().filter(s=> s.id !== Sync.activeSlotId());
+  if(!others.length){ toast('Сначала добавьте второй склад: «+ Склад» наверху'); return; }
+  transferAllTo(others[0].id);
+}
+async function transferAllTo(targetId){
+  const products = (await getAllLive('products')).filter(p=> !p.deletedAt);
+  if(!products.length){ toast('На складе нет товаров для переноса'); return; }
+  const items = products.map(p=> ({
+    sku: p.sku, name: p.name, category: p.category || '', supplier: p.supplier || '', barcode: p.barcode || '',
+    cost: p.cost || 0, price: p.price || 0, commissionPercent: p.commissionPercent || 0,
+    taxPercent: p.taxPercent || 0, packaging: p.packaging || 0, deliveryDiscount: p.deliveryDiscount || 0,
+    qty: Math.max(0, Number(p.totalStock) || 0)
+  }));
+  const pieces = items.reduce((s, it)=> s + it.qty, 0);
+  const target = slotNumber(targetId);
+  if(!confirm('Перенести весь товар на Склад ' + target + '?\n\n'
+            + 'Товаров: ' + products.length + ', штук переедет: ' + pieces + '.\n'
+            + 'Здесь штуки спишутся, там появятся. Продажи, комиссия и выплаты не меняются.')) return;
+
+  const id = newUid();
+  for(const it of items){
+    if(it.qty <= 0) continue;
+    const p = await get('products', it.sku);
+    if(!p) continue;
+    await logHistory('Корректировка', p.barcode, p, it.qty, {delta: -it.qty, extra:{transfer:{id, to: targetId}}});
+    await new Promise(r=> setTimeout(r, 0));
+    await recalcStock(it.sku);
+  }
+  const queue = readTransferKey(TRANSFER_KEY);
+  queue.push({id, to: targetId, from: Sync.activeSlotId(), created: Date.now(), items});
+  try{ localStorage.setItem(TRANSFER_KEY, JSON.stringify(queue)); }catch(e){}
+  if(window.Sync && Sync.syncNow) Sync.syncNow('перенос на другой склад');
+  toast('Товар перенесён. Откройте Склад ' + target + ' — он появится там');
+  await renderStock();
+}
+/* Приходуем переносы, пришедшие на этот склад (один раз на перенос). */
+async function applyIncomingTransfers(){
+  const cur = Sync.activeSlotId();
+  const doneList = readTransferKey(TRANSFER_DONE_KEY);
+  const done = new Set(doneList);
+  const mine = readTransferKey(TRANSFER_KEY).filter(t=> t.to === cur && !done.has(t.id + '@' + cur));
+  if(!mine.length) return 0;
+  for(const t of mine){
+    for(const it of t.items){
+      let p = await get('products', it.sku);
+      if(!p || p.deletedAt){
+        p = {sku: it.sku, name: it.name, category: it.category, supplier: it.supplier, barcode: it.barcode,
+             cost: it.cost, price: it.price, commissionPercent: it.commissionPercent, taxPercent: it.taxPercent,
+             packaging: it.packaging, deliveryDiscount: it.deliveryDiscount, totalStock: 0, updatedAt: Date.now()};
+        await put('products', p);
+      }
+      if(it.qty > 0){
+        await logHistory('Корректировка', p.barcode, p, it.qty, {delta: it.qty, extra:{transfer:{id: t.id, from: t.from}}});
+        await new Promise(r=> setTimeout(r, 0));
+        await recalcStock(it.sku);
+      }
+    }
+    done.add(t.id + '@' + cur);
+  }
+  try{ localStorage.setItem(TRANSFER_DONE_KEY, JSON.stringify([...done])); }catch(e){}
+  toast('Пришёл перенос товара с другого склада: ' + mine.length);
+  return mine.length;
+}
 
 function renderWsSwitch(){
   const btn = document.getElementById('wsSwitchBtn');
