@@ -327,9 +327,9 @@ function pickSlot(id){
 }
 function addSlot(){ Sync.beginAddSlot(); }
 
-/* Перенос всего товара на другой склад. Списывается здесь (Корректировкой,
-   не продажей — выручка и выплаты не меняются), а на том складе приходует
-   при первом открытии. Очередь переносов общая для устройства. */
+/* Копия товара на другой склад: штуки в том же количестве приходуются там
+   при первом открытии того склада. Здесь ничего не списывается. Очередь
+   копий общая для устройства. */
 const TRANSFER_KEY = 'sklad-transfers', TRANSFER_DONE_KEY = 'sklad-transfers-done';
 function readTransferKey(k){
   try{ const v = JSON.parse(localStorage.getItem(k) || 'null'); return Array.isArray(v) ? v : []; }catch(e){ return []; }
@@ -352,24 +352,16 @@ async function transferAllTo(targetId){
   }));
   const pieces = items.reduce((s, it)=> s + it.qty, 0);
   const target = slotNumber(targetId);
-  if(!confirm('Перенести весь товар на Склад ' + target + '?\n\n'
-            + 'Товаров: ' + products.length + ', штук переедет: ' + pieces + '.\n'
-            + 'Здесь штуки спишутся, там появятся. Продажи, комиссия и выплаты не меняются.')) return;
+  if(!confirm('Скопировать товар на Склад ' + target + '?\n\n'
+            + 'Товаров: ' + products.length + ', штук: ' + pieces + '.\n'
+            + 'Штуки появятся на том складе в том же количестве. Здесь они остаются — ничего не списывается. Продажи, комиссия и выплаты не меняются.')) return;
 
   const id = newUid();
-  for(const it of items){
-    if(it.qty <= 0) continue;
-    const p = await get('products', it.sku);
-    if(!p) continue;
-    await logHistory('Корректировка', p.barcode, p, it.qty, {delta: -it.qty, extra:{transfer:{id, to: targetId}}});
-    await new Promise(r=> setTimeout(r, 0));
-    await recalcStock(it.sku);
-  }
   const queue = readTransferKey(TRANSFER_KEY);
   queue.push({id, to: targetId, from: Sync.activeSlotId(), created: Date.now(), items});
   try{ localStorage.setItem(TRANSFER_KEY, JSON.stringify(queue)); }catch(e){}
   if(window.Sync && Sync.syncNow) Sync.syncNow('перенос на другой склад');
-  toast('Товар перенесён. Откройте Склад ' + target + ' — он появится там');
+  toast('Товар скопирован. Откройте Склад ' + target + ' — штуки появятся там');
   await renderStock();
 }
 /* Приходуем переносы, пришедшие на этот склад (один раз на перенос). */
