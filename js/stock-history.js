@@ -73,7 +73,8 @@ function applyReturnCuts(hist){
 
 async function logHistory(type, barcode, p, qty, opts){
   opts = opts || {};
-  const now = new Date();
+  /* opts.at — дата операции «задним числом» (мс); без неё — сейчас */
+  const now = opts.at ? new Date(opts.at) : new Date();
   const delta = (opts.delta !== undefined)
       ? opts.delta
       : (type === 'Расход' ? -Math.abs(qty) : Math.abs(qty));
@@ -93,6 +94,15 @@ async function logHistory(type, barcode, p, qty, opts){
     snap
   });
   return uid;
+}
+
+/* Дата из поля «задним числом»: пусто или сегодня — сейчас (undefined),
+   иначе середина выбранного дня. */
+function backdatedAt(inputId){
+  const el = document.getElementById(inputId);
+  const v = el && el.value;
+  if(!v || v === todayDateKey()) return undefined;
+  return new Date(v + 'T12:00:00').getTime();
 }
 
 /* Порядок на «Складе» — у каждого телефона свой, запоминается. */
@@ -330,6 +340,7 @@ function openProductModal(){
   document.getElementById('pmSkuOriginal').value='';
   document.getElementById('pmSku').disabled=false;
   document.getElementById('pmStock').dataset.shown = '';
+  document.getElementById('pmDate').value = '';
   clearFormErrors();
   document.getElementById('productModalBg').classList.add('show');
 }
@@ -480,7 +491,7 @@ async function saveProduct(){
     ? wantedStock - Number(shownAtOpen)
     : wantedStock - p.totalStock;
   if(diff !== 0){
-    await logHistory(existing ? 'Корректировка' : 'Начальный остаток', p.barcode, p, Math.abs(diff), {delta: diff});
+    await logHistory(existing ? 'Корректировка' : 'Начальный остаток', p.barcode, p, Math.abs(diff), {delta: diff, at: backdatedAt('pmDate')});
   }
   await recalcStock(sku);
 
