@@ -433,11 +433,11 @@ async function applyStockOperation(p, barcode, qty, opts){
      практике не срывается, а отклик по скану должен быть мгновенным. */
   playSound(currentMode);
 
-  const histUid = await logHistory(currentMode, barcode, p, qty);
+  const histUid = await logHistory(currentMode, barcode, p, qty, {at: opts.at});
   /* Каждый «Расход» = продажа, с неё партнёрам идёт процент. Начисление
      создаётся тут же и появляется у партнёров в «Балансе». */
   // начисления партнёрам — только в складах с «Балансом» (см. fullWorkspaces)
-  if(currentMode === 'Расход' && isFullWorkspace()) await createSaleCommission(p, qty, histUid, !!opts.singleOrder);
+  if(currentMode === 'Расход' && isFullWorkspace()) await createSaleCommission(p, qty, histUid, !!opts.singleOrder, opts.at);
   p.totalStock = await recalcStock(p.sku);
   showLastProduct(p);
   showStatus(p.name+' — '+currentMode.toLowerCase()+' '+sign+displayQty+' шт.', currentMode==='Расход' ? 'danger' : 'success');
@@ -453,12 +453,12 @@ async function applyStockOperation(p, barcode, qty, opts){
    Несколько штук разом обычно = несколько разных покупателей, поэтому
    ставка берётся по цене одной штуки. Галочка «Единый заказ» — один
    покупатель взял всё сразу: тогда ставка по общей сумме. */
-async function createSaleCommission(p, qty, opUid, singleOrder){
+async function createSaleCommission(p, qty, opUid, singleOrder, at){
   const price = Number(p.price) || 0;
   const amount = price * (Number(qty) || 0);
   if(amount <= 0) return;
   const ratePercent = rateForAmount(singleOrder ? amount : price);
-  const now = Date.now();
+  const now = at || Date.now();
   await put('orders', {
     uid: newUid(),
     opUid: opUid || '',
@@ -470,7 +470,7 @@ async function createSaleCommission(p, qty, opUid, singleOrder){
     commission: Math.round(amount * ratePercent) / 100,
     note: 'Продажа: ' + p.name + (singleOrder && qty > 1 ? ' (единый заказ)' : ''),
     timestamp: now,
-    dateKey: todayDateKey(),
+    dateKey: dateKeyOf(new Date(now)),
     dateDisplay: new Date(now).toLocaleDateString('ru-RU')
   });
   if(window.Sync && Sync.syncNow) Sync.syncNow('продажа → комиссия');
