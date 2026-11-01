@@ -9,7 +9,7 @@ const CHROME_MENUS = {
     {icon:'i-plus',     title:'Добавить товар',        action:'openProductModal()'},
     {sep:true},
     {icon:'i-printer',  title:'Распечатать штрихкоды', action:'printBarcodesSelected()'},
-    ...(isEmployee() ? [] : [{icon:'i-swap', title:'Перенести весь товар на другой склад', action:'openTransferAll()'}]),
+    ...(isEmployee() ? [] : [{icon:'i-swap', title:'Скопировать весь товар на другой склад', action:'openTransferAll()'}]),
     {icon:'i-download', title:'Накладная поставщику',  action:'exportSupplierInvoice()', needsSelection:true},
     stockTab === 'stop'
       ? {icon:'i-play',  title:'Вернуть в продажу',    action:'moveSelectedToStop(false)', needsSelection:true}
@@ -698,6 +698,7 @@ async function openQuickRashod(sku){
   const input = document.getElementById('qrQtyInput');
   input.value = 1;
   qtyReplaceNext = true;
+  document.getElementById('qrDate').value = '';
   document.getElementById('qrSingleOrder').checked = false;
   document.getElementById('quickRashodModalBg').classList.add('show');
 }
@@ -721,7 +722,7 @@ async function confirmQuickRashod(){
      на время одного вызова, чтобы не трогать режим на вкладке «Панель». */
   const savedMode = currentMode;
   currentMode = 'Расход';
-  const ok = await applyStockOperation(p, barcode, qty, {singleOrder});
+  const ok = await applyStockOperation(p, barcode, qty, {singleOrder, at: backdatedAt('qrDate')});
   currentMode = savedMode;
   if(ok) toast(p.name + ' — расход −' + qty + ' шт');
 }
@@ -737,6 +738,7 @@ async function openQuickPrihod(sku){
   document.getElementById('qpStock').textContent = 'На складе сейчас: ' + (p.totalStock||0) + ' шт';
   const input = document.getElementById('qpQtyInput');
   input.value = 1;
+  document.getElementById('qpDate').value = '';
   qtyReplaceNext = true;
   document.getElementById('quickPrihodModalBg').classList.add('show');
 }
@@ -757,7 +759,7 @@ async function confirmQuickPrihod(){
   const barcode = p.barcode || p.sku;
   const savedMode = currentMode;
   currentMode = 'Приход';
-  const ok = await applyStockOperation(p, barcode, qty);
+  const ok = await applyStockOperation(p, barcode, qty, {at: backdatedAt('qpDate')});
   currentMode = savedMode;
   if(ok) toast(p.name + ' — приход +' + qty + ' шт');
 }
