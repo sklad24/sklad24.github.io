@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=117">
+<link rel="stylesheet" href="css/app.css?v=118">
 </head>
 <body>
 
@@ -541,6 +541,18 @@
         <div class="t-caption" style="margin-top:8px;color:var(--text-tertiary);">Нужна, когда в конкретный день потратили не как обычно. Без поправки за день берётся сумма выше.</div>
       </div>
 
+      <div class="card">
+        <div class="card-head"><span class="t-eyebrow">Комиссии банка</span></div>
+        <div class="filter-row">
+          <input type="date" id="bankFeeDate" aria-label="Дата">
+          <input type="number" id="bankFeeInput" inputmode="numeric" placeholder="Сумма, ₽">
+          <button class="btn primary sm" style="width:auto;white-space:nowrap;" onclick="saveBankFee()"><svg class="icon"><use href="#i-check"/></svg>Записать</button>
+        </div>
+        <div class="t-caption" id="bankFeeTotal" style="margin-top:8px;color:var(--text-tertiary);"></div>
+        <div class="t-caption" style="margin-top:4px;color:var(--text-tertiary);">Вычитается из чистой прибыли за период, в который попадает дата.</div>
+        <div id="bankFeeList" style="margin-top:8px;"></div>
+      </div>
+
       <div class="period-seg" id="finPeriodSeg">
         <button class="active" id="finPeriodBtn1" onclick="renderFinance(1,this)">Сегодня</button>
         <button id="finPeriodBtnYesterday" onclick="renderFinance('yesterday',this)">Вчера</button>
@@ -729,6 +741,7 @@
     <div class="field"><label>Упаковка, ₽ за шт</label><input type="number" id="pmPackaging" placeholder="0"></div>
     <div class="field"><label>Скидка на доставку, ₽ за шт</label><input type="number" id="pmDeliveryDiscount" placeholder="0"></div>
     <div class="field"><label>Остаток, шт</label><input type="number" id="pmStock"></div>
+    <div class="field"><label>Дата остатка, если задним числом</label><input type="date" id="pmDate"></div>
     <div class="btn-row">
       <button class="btn ghost" onclick="closeProductModal()">Отмена</button>
       <button class="btn primary" id="pmSaveBtn" onclick="saveProduct()"><svg class="icon"><use href="#i-check"/></svg>Сохранить</button>
@@ -898,6 +911,7 @@
       <button onclick="padKey('qrQtyInput','0')">0</button>
       <button class="aux" onclick="padKey('qrQtyInput','back')" aria-label="Стереть">⌫</button>
     </div>
+    <div class="field"><label>Дата, если задним числом</label><input type="date" id="qrDate"></div>
     <label class="single-order full-only">
       <input type="checkbox" id="qrSingleOrder">
       <span><b>Единый заказ</b><small>один покупатель — % партнёрам по общей сумме</small></span>
@@ -921,6 +935,7 @@
       <input type="number" id="qpQtyInput" value="1" min="1" inputmode="numeric" enterkeyhint="done">
       <button onclick="adjustQuickPrihodQty(1)" aria-label="Больше">+</button>
     </div>
+    <div class="field"><label>Дата, если задним числом</label><input type="date" id="qpDate"></div>
     <div class="qty-pad" id="qpQtyPad">
       <button onclick="padKey('qpQtyInput','1')">1</button>
       <button onclick="padKey('qpQtyInput','2')">2</button>
@@ -986,20 +1001,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=117"></script>
-<script src="js/db.js?v=117"></script>
-<script src="js/sync-ui.js?v=117"></script>
-<script src="js/input.js?v=117"></script>
-<script src="js/returns-scan.js?v=117"></script>
-<script src="js/sounds.js?v=117"></script>
-<script src="js/stock-history.js?v=117"></script>
-<script src="js/xlsx-writer.js?v=117"></script>
-<script src="js/finance.js?v=117"></script>
-<script src="js/balance.js?v=117"></script>
-<script src="js/analytics.js?v=117"></script>
-<script src="js/settings-roles.js?v=117"></script>
-<script src="js/backup-labels.js?v=117"></script>
+<script src="sync-config.js?v=118"></script>
+<script src="js/db.js?v=118"></script>
+<script src="js/sync-ui.js?v=118"></script>
+<script src="js/input.js?v=118"></script>
+<script src="js/returns-scan.js?v=118"></script>
+<script src="js/sounds.js?v=118"></script>
+<script src="js/stock-history.js?v=118"></script>
+<script src="js/xlsx-writer.js?v=118"></script>
+<script src="js/finance.js?v=118"></script>
+<script src="js/balance.js?v=118"></script>
+<script src="js/analytics.js?v=118"></script>
+<script src="js/settings-roles.js?v=118"></script>
+<script src="js/backup-labels.js?v=118"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=117"></script>
+<script src="sync.js?v=118"></script>
 </body>
 </html>
