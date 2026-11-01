@@ -365,7 +365,8 @@ async function renderFinance(days, btnEl){
   const f = await computeFinance(days);
   const adSpend = await computeAdSpendForPeriod(days);
   const partnerComm = await computePartnerCommission(days);
-  const netProfitFinal = f.netProfit - adSpend - partnerComm;
+  const bankFees = bankFeesForPeriod(days);
+  const netProfitFinal = f.netProfit - adSpend - partnerComm - bankFees;
   const round = (n)=> Math.round(n);
 
   renderFinanceRing(f, adSpend, netProfitFinal, partnerComm);
@@ -388,6 +389,60 @@ async function renderFinance(days, btnEl){
   await renderReturnsReport(days);
   await loadAdSpendToday();
   await renderAdSpendLog();
+  renderBankFees(days);
+}
+
+/* Комиссии банка, которые вводит владелец: список в настройках (синхронизируется
+   вместе с ними), каждая запись — дата и сумма. Вычитаются из чистой прибыли. */
+function bankFeeList(){
+  return Array.isArray(settings.bankFees) ? settings.bankFees.slice() : [];
+}
+function bankFeesForPeriod(days){
+  const range = (days === null || days === undefined) ? null : getPeriodRange(days);
+  return bankFeeList().reduce((sum, b)=>{
+    const t = new Date(b.dateKey + 'T12:00:00').getTime();
+    if(range && (t < range.start || t > range.end)) return sum;
+    return sum + (Number(b.amount) || 0);
+  }, 0);
+}
+async function saveBankFee(){
+  const raw = document.getElementById('bankFeeInput').value;
+  const val = Number(raw);
+  if(raw === '' || isNaN(val) || val < 0){ toast('Введите сумму в рублях'); return; }
+  const dateKey = document.getElementById('bankFeeDate').value || todayDateKey();
+  settings.bankFees = bankFeeList().concat([{id: newUid(), dateKey, amount: val}]);
+  await saveAppSettings();
+  document.getElementById('bankFeeInput').value = '';
+  toast('Записано: ' + val + ' ₽ комиссии банка');
+  await renderFinance(currentFinancePeriod, null);
+}
+async function deleteBankFee(id){
+  if(!confirm('Убрать эту запись о комиссии банка?')) return;
+  settings.bankFees = bankFeeList().filter(b=> b.id !== id);
+  await saveAppSettings();
+  toast('Убрано');
+  await renderFinance(currentFinancePeriod, null);
+}
+function renderBankFees(days){
+  const dateEl = document.getElementById('bankFeeDate');
+  if(dateEl && !dateEl.value) dateEl.value = todayDateKey();
+  const total = document.getElementById('bankFeeTotal');
+  const list = document.getElementById('bankFeeList');
+  if(!list) return;
+  const sum = bankFeesForPeriod(days);
+  if(total) total.textContent = sum ? 'За период: ' + Math.round(sum) + ' ₽' : '';
+  const rows = bankFeeList().sort((a,b)=> String(b.dateKey).localeCompare(String(a.dateKey)));
+  list.innerHTML = rows.length ? rows.slice(0, 60).map(b=>`
+    <div class="row-item">
+      <div class="rmain">
+        <div class="rname">${new Date(b.dateKey + 'T12:00:00').toLocaleDateString('ru-RU')}</div>
+        <div class="rmeta">комиссии банка</div>
+      </div>
+      <div class="rside">
+        <span class="rval">${Math.round(Number(b.amount) || 0)} ₽</span>
+        <button class="icon-btn" onclick="deleteBankFee('${escapeAttr(b.id)}')" aria-label="Убрать"><svg class="icon"><use href="#i-trash"/></svg></button>
+      </div>
+    </div>`).join('') : emptyLine('i-wallet','Комиссий банка пока не записывали');
 }
 
 /* ============================================================
