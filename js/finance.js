@@ -260,7 +260,7 @@ async function computeFinance(days){
 var finRingSelected = null;
 var finRingSegments = [];
 
-function renderFinanceRing(f, adSpend, netProfitFinal, partnerComm){
+function renderFinanceRing(f, adSpend, netProfitFinal, partnerComm, bankFees){
   /* Выручки в кольце нет намеренно: она равна сумме всех остальных долей,
      поэтому занимала половину круга и сплющивала всё остальное. Главная
      цифра здесь — чистая прибыль, она же в центре. */
@@ -274,6 +274,7 @@ function renderFinanceRing(f, adSpend, netProfitFinal, partnerComm){
     {name:'Упаковка', value:f.packagingAmount, color:'#E4E7ED', icon:'i-box'},
     {name:'Скидка на доставку', value:f.deliveryDiscountAmount, color:'#C5CAD3', icon:'i-out'},
     {name:'Реклама', value:adSpend, color:'#7A8090', icon:'i-chart'},
+    {name:'Комиссия банка', value:bankFees || 0, color:'#3E434D', icon:'i-wallet'},
   ];
   segments.forEach(s=>{ s.arcValue = Math.max(0, s.value); });
 
@@ -369,7 +370,7 @@ async function renderFinance(days, btnEl){
   const netProfitFinal = f.netProfit - adSpend - partnerComm - bankFees;
   const round = (n)=> Math.round(n);
 
-  renderFinanceRing(f, adSpend, netProfitFinal, partnerComm);
+  renderFinanceRing(f, adSpend, netProfitFinal, partnerComm, bankFees);
 
   const rows = Object.values(f.bySku).sort((a,b)=>b.net-a.net);
   const list = document.getElementById('financeByProduct');
