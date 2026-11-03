@@ -333,8 +333,16 @@
   }
   /* Открытый склад добавлен владельцем как полный. */
   function slotIsFull(){
-    const s = slots().find(x=> x.id === activeSlot());
-    return !!(s && s.full);
+    const list = slots();
+    const s = list.find(x=> x.id === activeSlot());
+    if(!s) return false;
+    /* Склады, добавленные до появления этого признака, помечаем сами: если
+       открыт владельческий вход (не партнёрский), склад полный. */
+    if(s.full === undefined && s.id !== 'a1' && !membership){
+      s.full = true;
+      saveSlots(list);
+    }
+    return !!s.full;
   }
 
   function role(){ return membership ? (membership.role || 'employee') : 'owner'; }
