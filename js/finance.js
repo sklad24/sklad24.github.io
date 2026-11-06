@@ -266,15 +266,15 @@ function renderFinanceRing(f, adSpend, netProfitFinal, partnerComm, bankFees){
      цифра здесь — чистая прибыль, она же в центре. */
   const segments = [
     {name:'Чистая прибыль', value:netProfitFinal, color:'#4338FF', icon:'i-check-circle'},
-    {name:'Себестоимость', value:f.cogs, color:'#8A8F9C', icon:'i-box'},
-    {name:'Валовая прибыль', value:f.grossProfit, color:'#B4B9C4', icon:'i-chart'},
-    {name:'Налог', value:f.taxAmount, color:'#5F6368', icon:'i-alert'},
-    {name:'Комиссия маркетплейса', value:f.commissionAmount, color:'#D1D5DB', icon:'i-wallet'},
-    {name:'Комиссия партнёрам', value:partnerComm || 0, color:'#9AA1AE', icon:'i-coins'},
-    {name:'Упаковка', value:f.packagingAmount, color:'#E4E7ED', icon:'i-box'},
-    {name:'Скидка на доставку', value:f.deliveryDiscountAmount, color:'#C5CAD3', icon:'i-out'},
-    {name:'Реклама', value:adSpend, color:'#7A8090', icon:'i-chart'},
-    {name:'Комиссия банка', value:bankFees || 0, color:'#3E434D', icon:'i-wallet'},
+    {name:'Себестоимость', value:f.cogs, color:'#FF4D6D', icon:'i-box'},
+    {name:'Валовая прибыль', value:f.grossProfit, color:'#A07BFF', icon:'i-chart'},
+    {name:'Налог', value:f.taxAmount, color:'#FF9F43', icon:'i-alert'},
+    {name:'Комиссия маркетплейса', value:f.commissionAmount, color:'#14B8A6', icon:'i-wallet'},
+    {name:'Комиссия партнёрам', value:partnerComm || 0, color:'#F5C518', icon:'i-coins'},
+    {name:'Упаковка', value:f.packagingAmount, color:'#3DA5F4', icon:'i-box'},
+    {name:'Скидка на доставку', value:f.deliveryDiscountAmount, color:'#E76F51', icon:'i-out'},
+    {name:'Реклама', value:adSpend, color:'#8AC926', icon:'i-chart'},
+    {name:'Комиссия банка', value:bankFees || 0, color:'#F72585', icon:'i-wallet'},
   ];
   segments.forEach(s=>{ s.arcValue = Math.max(0, s.value); });
 
@@ -310,12 +310,11 @@ function renderFinanceRing(f, adSpend, netProfitFinal, partnerComm, bankFees){
   }
   grid.innerHTML = segments.map((s,i)=>{
     const pct = total>0 ? Math.round(s.arcValue/total*100) : 0;
-    return `<div class="cat-card" id="finSegCard${i}" style="--seg-color:${s.color}" onclick="selectFinRingSegment(${i})">
-      <div class="cat-share" style="background:${s.color}26;color:${s.color}">${pct}%</div>
-      <div class="cat-icon" style="background:${s.color}"><svg class="icon"><use href="#${s.icon}"/></svg></div>
-      <div class="cat-name">${escapeHtml(s.name)}</div>
-      <div class="cat-meta">доля кольца</div>
-      <div class="cat-amount">${Math.round(s.value)} ₽</div>
+    return `<div class="fin-row" id="finSegCard${i}" onclick="selectFinRingSegment(${i})">
+      <span class="fin-dot" style="background:${s.color}"></span>
+      <span class="fin-name">${escapeHtml(s.name)}</span>
+      <span class="fin-pct">${pct}%</span>
+      <span class="fin-val">${Math.round(s.value)} ₽</span>
     </div>`;
   }).join('');
 }
@@ -325,7 +324,7 @@ function showFinRingTotal(){
   const main = finRingSegments[0];
   document.getElementById('finRingAmount').textContent = (main ? Math.round(main.value) : 0) + ' ₽';
   document.getElementById('finRingLabel').textContent = main ? main.name : 'Чистая прибыль';
-  document.querySelectorAll('#finRingGrid .cat-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelectorAll('#finRingGrid .fin-row').forEach(c=>c.classList.remove('selected'));
   markPickedArc(-1);
 }
 function markPickedArc(i){
@@ -341,9 +340,17 @@ function selectFinRingSegment(i){
   markPickedArc(i);
   document.getElementById('finRingAmount').textContent = Math.round(s.value) + ' ₽';
   document.getElementById('finRingLabel').textContent = s.name;
-  document.querySelectorAll('#finRingGrid .cat-card').forEach(c=>{
+  document.querySelectorAll('#finRingGrid .fin-row').forEach(c=>{
     c.classList.toggle('selected', c.id === ('finSegCard'+i));
   });
+}
+/* Статьи кольца — раскрываются и сворачиваются плавно, по кнопке «⋯» в шапке. */
+function toggleFinLegend(btn){
+  const box = document.getElementById('finLegend');
+  if(!box) return;
+  const open = !box.classList.contains('open');
+  box.classList.toggle('open', open);
+  if(btn) btn.setAttribute('aria-expanded', String(open));
 }
 
 async function renderFinance(days, btnEl){
@@ -397,6 +404,13 @@ async function renderFinance(days, btnEl){
    вместе с ними), каждая запись — дата и сумма. Вычитаются из чистой прибыли. */
 function bankFeeList(){
   return Array.isArray(settings.bankFees) ? settings.bankFees.slice() : [];
+}
+/* Настройки расходов (реклама, поправки, комиссии банка) — прячутся за «⋯». */
+function toggleFinSettings(btn){
+  const box = document.getElementById('finSettingsBox');
+  if(!box) return;
+  box.hidden = !box.hidden;
+  if(btn) btn.setAttribute('aria-expanded', String(!box.hidden));
 }
 function bankFeesForPeriod(days){
   const range = (days === null || days === undefined) ? null : getPeriodRange(days);
