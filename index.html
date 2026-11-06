@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=120">
+<link rel="stylesheet" href="css/app.css?v=121">
 </head>
 <body>
 
@@ -512,8 +512,17 @@
 
     <!-- РАСХОДЫ / ПРИБЫЛЬ -->
     <section id="sec-finance">
-      <div class="page-head"><h2>Расходы и прибыль</h2><p>Валовая и чистая прибыль за период, за вычетом налога, комиссии, упаковки и рекламы</p></div>
+      <div class="page-head">
+        <div class="page-head-row">
+          <h2>Расходы и прибыль</h2>
+          <div class="head-actions">
+            <button class="icon-btn-lg" onclick="toggleFinSettings(this)" aria-label="Расходы: реклама, поправки, комиссии банка" aria-expanded="false" aria-controls="finSettingsBox"><svg class="icon"><use href="#i-dots"/></svg></button>
+          </div>
+        </div>
+        <p>Валовая и чистая прибыль за период, за вычетом налога, комиссии, упаковки и рекламы</p>
+      </div>
 
+      <div id="finSettingsBox" hidden>
       <div class="card">
         <div class="card-head"><span class="t-eyebrow">Реклама каждый день</span></div>
         <!-- Ставка вместо ежедневного ввода: сумма сама учитывается за
@@ -552,6 +561,7 @@
         <div class="t-caption" style="margin-top:4px;color:var(--text-tertiary);">Вычитается из чистой прибыли за период, в который попадает дата.</div>
         <div id="bankFeeList" style="margin-top:8px;"></div>
       </div>
+      </div>
 
       <div class="period-seg" id="finPeriodSeg">
         <button class="active" id="finPeriodBtn1" onclick="renderFinance(1,this)">Сегодня</button>
@@ -564,7 +574,7 @@
       <div class="t-caption" id="finCustomRangeLabel" style="display:none;margin:-4px 0 var(--sp-3);color:var(--accent-strong);"></div>
 
       <div class="card ring-card">
-        <div class="card-head"><span class="t-eyebrow">Куда уходит прибыль</span></div>
+        <div class="card-head ring-head"><span class="t-eyebrow">Куда уходит прибыль</span><button class="icon-btn" onclick="toggleFinLegend(this)" aria-expanded="false" aria-controls="finLegend" aria-label="Показать статьи"><svg class="icon"><use href="#i-dots"/></svg></button></div>
         <div class="ring-wrap">
           <svg viewBox="0 0 220 220" class="ring-svg" id="finRingSvg"></svg>
           <div class="ring-center" id="finRingCenter" onclick="showFinRingTotal()">
@@ -572,7 +582,7 @@
             <div class="ring-label" id="finRingLabel">Чистая прибыль</div>
           </div>
         </div>
-        <div class="cat-grid" id="finRingGrid"></div>
+        <div class="fin-legend" id="finLegend"><div class="fin-legend-inner"><div id="finRingGrid"></div></div></div>
         <div class="t-caption" id="finRingHint" style="margin-top:var(--sp-3);color:var(--text-tertiary);">Нажмите на деление кольца или карточку — в центре появится сумма именно по ней. Нажмите ещё раз (или в центр), чтобы вернуться к выручке.</div>
       </div>
 
@@ -1001,20 +1011,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=120"></script>
-<script src="js/db.js?v=120"></script>
-<script src="js/sync-ui.js?v=120"></script>
-<script src="js/input.js?v=120"></script>
-<script src="js/returns-scan.js?v=120"></script>
-<script src="js/sounds.js?v=120"></script>
-<script src="js/stock-history.js?v=120"></script>
-<script src="js/xlsx-writer.js?v=120"></script>
-<script src="js/finance.js?v=120"></script>
-<script src="js/balance.js?v=120"></script>
-<script src="js/analytics.js?v=120"></script>
-<script src="js/settings-roles.js?v=120"></script>
-<script src="js/backup-labels.js?v=120"></script>
+<script src="sync-config.js?v=121"></script>
+<script src="js/db.js?v=121"></script>
+<script src="js/sync-ui.js?v=121"></script>
+<script src="js/input.js?v=121"></script>
+<script src="js/returns-scan.js?v=121"></script>
+<script src="js/sounds.js?v=121"></script>
+<script src="js/stock-history.js?v=121"></script>
+<script src="js/xlsx-writer.js?v=121"></script>
+<script src="js/finance.js?v=121"></script>
+<script src="js/balance.js?v=121"></script>
+<script src="js/analytics.js?v=121"></script>
+<script src="js/settings-roles.js?v=121"></script>
+<script src="js/backup-labels.js?v=121"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=120"></script>
+<script src="sync.js?v=121"></script>
 </body>
 </html>
