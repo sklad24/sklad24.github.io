@@ -10,6 +10,7 @@ const CHROME_MENUS = {
     {sep:true},
     {icon:'i-printer',  title:'Распечатать штрихкоды', action:'printBarcodesSelected()'},
     ...(isEmployee() ? [] : [{icon:'i-swap', title:'Скопировать весь товар на другой склад', action:'openTransferAll()'}]),
+    ...(isEmployee() ? [] : [{icon:'i-out', title:'Мультизаказ из выбранных', action:'openMultiOrder()', needsSelection:true}]),
     {icon:'i-download', title:'Накладная поставщику',  action:'exportSupplierInvoice()', needsSelection:true},
     stockTab === 'stop'
       ? {icon:'i-play',  title:'Вернуть в продажу',    action:'moveSelectedToStop(false)', needsSelection:true}
@@ -729,6 +730,57 @@ async function confirmQuickRashod(){
 
 /* ---- быстрый приход прямо со «Склада» (кнопка рядом с карандашиком) ----
    Та же логика, что и у быстрого расхода выше, только приёмка. */
+/* ---- мультизаказ: выбранные галочками товары проходят одним заказом ----
+   Ступень комиссии партнёрам берётся по сумме всего заказа, поэтому
+   несколько товаров «единым заказом» дают меньший процент. */
+let multiOrderItems = [];
+async function openMultiOrder(){
+  if(invoiceSelection.size === 0){ toast('Отметьте товары галочками'); return; }
+  const list = [];
+  for(const sku of invoiceSelection){
+    const p = await get('products', sku);
+    if(p) list.push(p);
+  }
+  if(!list.length) return;
+  multiOrderItems = list;
+  document.getElementById('multiOrderList').innerHTML = list.map((p, i)=>`
+    <div class="row-item">
+      <div class="rmain"><div class="rname">${escapeHtml(p.name)}</div><div class="rmeta">${Math.round(p.price || 0)} ₽ за шт · на складе ${p.totalStock || 0} шт</div></div>
+      <div class="rside"><input type="number" inputmode="numeric" min="0" value="1" id="moQty${i}" oninput="updateMultiOrderTotal()" aria-label="Сколько штук" style="width:70px;"></div>
+    </div>`).join('');
+  updateMultiOrderTotal();
+  document.getElementById('multiOrderModalBg').classList.add('show');
+}
+function multiOrderLines(){
+  return multiOrderItems.map((p, i)=>({p, qty: Math.max(0, Math.round(Number(document.getElementById('moQty' + i).value) || 0))}))
+    .filter(x=> x.qty > 0);
+}
+function updateMultiOrderTotal(){
+  const total = multiOrderLines().reduce((s, x)=> s + (Number(x.p.price) || 0) * x.qty, 0);
+  const count = multiOrderLines().reduce((s, x)=> s + x.qty, 0);
+  document.getElementById('multiOrderTotal').textContent = 'Заказ: ' + count + ' шт на ' + Math.round(total) + ' ₽';
+}
+function closeMultiOrder(){
+  document.getElementById('multiOrderModalBg').classList.remove('show');
+}
+async function confirmMultiOrder(){
+  const lines = multiOrderLines();
+  if(!lines.length){ toast('Укажите, сколько штук каждого товара'); return; }
+  const groupAmount = lines.reduce((s, x)=> s + (Number(x.p.price) || 0) * x.qty, 0);
+  closeMultiOrder();
+  const savedMode = currentMode;
+  currentMode = 'Расход';
+  let done = 0;
+  for(const x of lines){
+    const ok = await applyStockOperation(x.p, x.p.barcode || x.p.sku, x.qty, {singleOrder: true, groupAmount});
+    if(ok) done++;
+  }
+  currentMode = savedMode;
+  clearInvoiceSelection();
+  toast('Мультизаказ: ' + done + ' из ' + lines.length + ' товаров, сумма ' + Math.round(groupAmount) + ' ₽');
+  await renderStock();
+}
+
 let pendingQuickPrihod = null; // товар
 async function openQuickPrihod(sku){
   const p = await get('products', sku);
