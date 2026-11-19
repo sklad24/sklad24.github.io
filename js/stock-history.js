@@ -708,6 +708,13 @@ async function renderHistory(){
     return;
   }
   const emp = isEmployee();
+  /* Чистая прибыль каждой продажи: выручка минус налог, комиссия площадки,
+     упаковка, скидка на доставку и процент партнёрам по этой продаже. */
+  const profitSkus = {}, partnerCut = {};
+  if(!emp){
+    (await getAllLive('products')).forEach(p=> profitSkus[p.sku] = p);
+    (await getAllLive('orders')).forEach(o=>{ if(o.opUid) partnerCut[o.opUid] = (partnerCut[o.opUid] || 0) + (Number(o.commission) || 0); });
+  }
   list.innerHTML = filtered.slice(0,200).map(h=>{
     let display, cls;
     if(h.type==='Расход'){ display = '−'+Math.abs(h.qty); cls='neg'; }
@@ -722,6 +729,14 @@ async function renderHistory(){
     }
     const skuLine = `<div class="rmeta" style="font-family:var(--font-mono);color:var(--text-secondary);">${escapeHtml(h.sku || '—')}</div>`;
     const dtLine  = `<div class="rmeta">${h.date} · ${h.time} · ${h.type}</div>`;
+    /* У продажи — за сколько продали одну штуку (цена из снимка операции). */
+    const sellPrice = (h.type === 'Расход' && h.snap && h.snap.price)
+      ? `<span class="t-caption" style="color:var(--text-tertiary);white-space:nowrap;">${Math.round(Number(h.snap.price))} ₽</span>` : '';
+    let sellProfit = '';
+    if(h.type === 'Расход' && !emp){
+      const e = opEconomics(h, profitSkus[h.sku]);
+      if(e) sellProfit = `<span class="t-caption" style="color:var(--success);font-weight:600;white-space:nowrap;">${Math.round(e.net - (partnerCut[h.uid] || 0))} ₽</span>`;
+    }
     /* Нажатие на количество — показать остаток товара на момент ЭТОЙ операции
        (а не текущий), чтобы можно было сверить прошлые записи между собой. */
     const valSpan = `<span class="rval ${cls}" style="cursor:pointer;" onclick="toggleHistoryStock(event,this,${h.id},'${escapeAttr(h.sku)}')">${display} шт</span>`;
@@ -729,7 +744,7 @@ async function renderHistory(){
       return `
       <div class="row-item">
         <div class="rmain"><div class="rname">${escapeHtml(h.name)}</div>${skuLine}${dtLine}</div>
-        <div class="rside">${valSpan}</div>
+        <div class="rside">${sellPrice}${valSpan}</div>
       </div>`;
     }
     return `
@@ -737,7 +752,7 @@ async function renderHistory(){
       <input type="checkbox" class="hist-chk" aria-label="Выбрать запись" ${historySelection.has(h.id)?'checked':''} onchange="toggleHistorySelection(${h.id}, this.checked)">
       <div class="rmain"><div class="rname">${escapeHtml(h.name)}</div>${skuLine}${dtLine}</div>
       <div class="rside">
-        ${valSpan}
+        ${sellPrice}${sellProfit}${valSpan}
         <button class="icon-btn" onclick="deleteHistoryEntry(${h.id})" aria-label="Удалить запись"><svg class="icon"><use href="#i-trash"/></svg></button>
       </div>
     </div>`;
