@@ -437,7 +437,7 @@ async function applyStockOperation(p, barcode, qty, opts){
   /* Каждый «Расход» = продажа, с неё партнёрам идёт процент. Начисление
      создаётся тут же и появляется у партнёров в «Балансе». */
   // начисления партнёрам — только в складах с «Балансом» (см. fullWorkspaces)
-  if(currentMode === 'Расход' && isFullWorkspace()) await createSaleCommission(p, qty, histUid, !!opts.singleOrder, opts.at);
+  if(currentMode === 'Расход' && isFullWorkspace()) await createSaleCommission(p, qty, histUid, !!opts.singleOrder, opts.at, opts.groupAmount);
   p.totalStock = await recalcStock(p.sku);
   showLastProduct(p);
   showStatus(p.name+' — '+currentMode.toLowerCase()+' '+sign+displayQty+' шт.', currentMode==='Расход' ? 'danger' : 'success');
@@ -453,11 +453,12 @@ async function applyStockOperation(p, barcode, qty, opts){
    Несколько штук разом обычно = несколько разных покупателей, поэтому
    ставка берётся по цене одной штуки. Галочка «Единый заказ» — один
    покупатель взял всё сразу: тогда ставка по общей сумме. */
-async function createSaleCommission(p, qty, opUid, singleOrder, at){
+async function createSaleCommission(p, qty, opUid, singleOrder, at, groupAmount){
   const price = Number(p.price) || 0;
   const amount = price * (Number(qty) || 0);
   if(amount <= 0) return;
-  const ratePercent = rateForAmount(singleOrder ? amount : price);
+  /* Мультизаказ: ступень берётся по сумме всего заказа, а не по этому товару */
+  const ratePercent = rateForAmount(singleOrder ? (groupAmount || amount) : price);
   const now = at || Date.now();
   await put('orders', {
     uid: newUid(),
