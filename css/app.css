@@ -382,6 +382,28 @@ input.invalid{border-color:var(--danger-border);}
 .fin-name{flex:1;min-width:0;font-size:15px;color:#1D1F20;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .fin-pct{min-width:34px;text-align:right;font-size:13px;color:#6B7080;font-variant-numeric:tabular-nums;}
 .fin-val{min-width:84px;text-align:right;font-size:15px;font-weight:600;color:#1D1F20;font-variant-numeric:tabular-nums;}
+
+/* Склад: свайп по строке (приход / расход) */
+.swipe{position:relative;overflow:hidden;border-radius:14px;}
+.swipe-fg{position:relative;background:#fff;z-index:1;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;}
+.swipe-bg{position:absolute;inset:0;display:flex;align-items:center;gap:8px;padding:0 20px;font-weight:700;font-size:15px;color:#fff;opacity:0;}
+.swipe-bg.l{background:#12A150;justify-content:flex-start;}
+.swipe-bg.r{background:#E5394B;justify-content:flex-end;}
+.swipe-bg .icon{width:18px;height:18px;}
+
+/* Шторка сверху: стекло, как в Fulbro */
+.sheet-scrim{position:fixed;inset:0;background:rgba(20,24,31,.22);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:40;}
+.sheet-scrim.show{opacity:1;pointer-events:auto;}
+.top-sheet{position:fixed;left:10px;right:10px;top:calc(10px + env(safe-area-inset-top));z-index:41;border-radius:28px;padding:10px 8px 12px;background:rgba(255,255,255,.74);backdrop-filter:blur(30px) saturate(1.4);-webkit-backdrop-filter:blur(30px) saturate(1.4);border:1px solid rgba(255,255,255,.95);box-shadow:0 30px 60px rgba(36,42,61,.22),inset 0 1px 0 #fff;transform:translateY(calc(-100% - 30px));transition:transform .38s cubic-bezier(.22,.7,.2,1);max-height:80vh;overflow:auto;}
+.top-sheet.show{transform:translateY(0);}
+.sheet-grip{width:40px;height:5px;border-radius:3px;background:rgba(36,42,61,.22);margin:4px auto 10px;}
+.sheet-row{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 12px;border:0;border-top:1px solid rgba(36,42,61,.08);background:transparent;font-size:16px;font-weight:600;color:var(--ink,#1D1F20);text-align:left;}
+.sheet-row:first-of-type{border-top:0;}
+.sheet-row.danger{color:#E5394B;}
+.sheet-ico{width:34px;height:34px;border-radius:11px;background:rgba(67,56,255,.10);color:#4338FF;display:flex;align-items:center;justify-content:center;flex:none;}
+.sheet-row.danger .sheet-ico{background:rgba(229,57,75,.10);color:#E5394B;}
+.sheet-ico .icon{width:18px;height:18px;}
+.sheet-chev{margin-left:auto;color:#8A90A0;font-size:20px;}
 .ring-wrap{position:relative;width:200px;height:200px;margin:var(--sp-2) auto var(--sp-5);}
 .ring-svg{width:100%;height:100%;transform:rotate(-90deg);}
 .ring-svg circle{fill:none;stroke-linecap:round;transition:stroke-dasharray .3s ease;}
