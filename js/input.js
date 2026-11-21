@@ -731,6 +731,14 @@ async function confirmQuickRashod(){
 
 /* ---- быстрый приход прямо со «Склада» (кнопка рядом с карандашиком) ----
    Та же логика, что и у быстрого расхода выше, только приёмка. */
+/* ---- тип записей в «Операциях»: сегмент пишет в скрытый выбор и перерисовывает список ---- */
+function setHistType(v){
+  const sel = document.getElementById('historyFilter');
+  if(sel) sel.value = v;
+  document.querySelectorAll('.type-seg button').forEach(b=> b.classList.toggle('active', b.dataset.v === v));
+  renderHistory();
+}
+
 /* ---- свайп по строке товара: вправо — приход, влево — расход ---- */
 function bindStockSwipe(root){
   root.querySelectorAll('.swipe').forEach(el=>{
@@ -774,7 +782,7 @@ function bindStockSwipe(root){
 /* ---- шторка сверху вместо «⋯» на складе: то же меню, стеклянное ---- */
 let stockSheetActions = [];
 function openStockSheet(){
-  stockSheetActions = CHROME_MENUS.stock().filter(it=> !it.sep && !(it.needsSelection && invoiceSelection.size === 0));
+  stockSheetActions = CHROME_MENUS.stock().filter(it=> it.title && !(it.needsSelection && invoiceSelection.size === 0));
   document.getElementById('stockSheetList').innerHTML = stockSheetActions.map((it, i)=>`
     <button type="button" class="sheet-row${it.danger ? ' danger' : ''}" onclick="runStockSheet(${i})">
       <span class="sheet-ico"><svg class="icon"><use href="#${it.icon}"/></svg></span>${escapeHtml(it.title)}
