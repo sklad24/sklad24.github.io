@@ -200,15 +200,42 @@ async function renderSnapshots(){
   catch(e){ box.innerHTML = emptyLine('i-alert', navigator.onLine ? 'Не удалось загрузить список копий' : 'Нет сети — список копий недоступен'); return; }
   if(!list.length){ box.innerHTML = emptyLine('i-alert', 'Копий пока нет — первая появится этой ночью'); return; }
   const master = isMasterDevice();
-  box.innerHTML = list.map(s=>{
-    const d = new Date(s.taken_at), c = s.counts || {};
-    const when = d.toLocaleDateString('ru-RU', {day:'numeric', month:'long'}) + ', ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-    return `<div class="row-item">
-      <div class="rmain"><div class="rname">${escapeHtml(when)}</div>
-        <div class="rmeta">${SNAP_KIND[s.kind] || escapeHtml(s.kind)} · ${c.products||0} ${pluralTovar(c.products||0)} · ${c.operations||0} операций</div></div>
-      <button class="btn ghost sm" style="width:auto;" ${master ? '' : 'disabled'} onclick="restoreSnapshotUI(${Number(s.id)}, '${escapeAttr(when)}')">Откатить</button>
-    </div>`;
-  }).join('') + (master ? '' : `<div class="t-caption" style="margin-top:8px;color:var(--text-secondary);">Откатить можно только на главном устройстве (галочка выше).</div>`);
+  /* Календарь: выбираешь число — откат к копии за этот день (последней за день). */
+  const dayKey = s => { const d = new Date(s.taken_at); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const sorted = list.slice().sort((a, b) => new Date(b.taken_at) - new Date(a.taken_at));
+  window.__snapByDay = {};
+  sorted.forEach(s => { const k = dayKey(s); if(!window.__snapByDay[k]) window.__snapByDay[k] = s; });
+  const keys = Object.keys(window.__snapByDay).sort();
+  box.innerHTML = `
+    <div class="rb-cal">
+      <input type="date" id="rbDate" min="${keys[0]}" max="${keys[keys.length - 1]}" value="${keys[keys.length - 1]}" onchange="rbPick()" aria-label="Число для отката">
+      <button class="btn primary sm" id="rbGo" onclick="rbGo()" ${master ? '' : 'disabled'}>Откатить</button>
+    </div>
+    <div class="t-caption" id="rbInfo" style="margin-top:6px;color:var(--text-secondary);"></div>
+    ${master ? '' : `<div class="t-caption" style="margin-top:8px;color:var(--text-secondary);">Откатить можно только на главном устройстве (галочка выше).</div>`}`;
+  rbPick();
+}
+/* Какая копия есть за выбранное число — и можно ли откатиться на неё. */
+function rbPick(){
+  const input = document.getElementById('rbDate'), info = document.getElementById('rbInfo'), go = document.getElementById('rbGo');
+  if(!input || !window.__snapByDay) return;
+  const s = window.__snapByDay[input.value];
+  if(s){
+    const d = new Date(s.taken_at);
+    info.textContent = 'Копия от ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) + ' — откатимся к ней';
+    go.disabled = !isMasterDevice();
+  } else {
+    info.textContent = 'За это число копии нет. Выберите другое.';
+    go.disabled = true;
+  }
+}
+function rbGo(){
+  const input = document.getElementById('rbDate');
+  const s = window.__snapByDay && window.__snapByDay[input.value];
+  if(!s) return;
+  const d = new Date(s.taken_at);
+  const when = d.toLocaleDateString('ru-RU', {day:'numeric', month:'long'}) + ', ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+  restoreSnapshotUI(Number(s.id), when);
 }
 async function snapshotNow(){
   const r = await Sync.takeSnapshot('manual');
