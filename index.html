@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=125">
+<link rel="stylesheet" href="css/app.css?v=126">
 </head>
 <body>
 
@@ -196,19 +196,23 @@
         </section>
 
     <section id="sec-stock">
-      <div class="page-head">
-        <div class="page-head-row">
-          <h2>Склад</h2>
+      <!-- Шапка склада: склады, действия и вкладки — одной группой -->
+      <div class="stock-bar">
+        <div class="stock-bar-row">
+          <!-- Склады на этом устройстве: переключение без выхода из аккаунта -->
+          <div class="slot-seg" id="slotSeg" role="tablist" aria-label="Склады"></div>
           <div class="head-actions" id="stockActions">
-            <button class="icon-btn-lg" onclick="openStockScan()" aria-label="Сканировать товар"><svg class="icon"><use href="#i-camera"/></svg></button>
             <button class="icon-btn-lg" onclick="openStockSheet()" aria-label="Действия со складом" aria-haspopup="dialog"><svg class="icon"><use href="#i-dots"/></svg></button>
           </div>
         </div>
-        <p>Все товары, остатки и штрихкоды</p>
       </div>
 
-      <!-- Склады на этом устройстве: переключение без выхода из аккаунта -->
-      <div class="period-seg slot-seg" id="slotSeg" role="tablist" aria-label="Склады" style="margin-bottom:var(--sp-2);"></div>
+      <!-- Панель выбора: прилипает сверху и едет вместе со списком, пока товары отмечены -->
+      <div class="sel-bar" id="selBar" hidden>
+        <span class="sel-count" id="selBarCount">0 товаров</span>
+        <button type="button" class="sel-go" onclick="openStockSheet()">Действия</button>
+        <button type="button" class="sel-x" onclick="clearInvoiceSelection()" aria-label="Снять выделение">×</button>
+      </div>
 
       <div class="period-seg stock-tabs" id="stockTabSeg" role="tablist">
         <button data-v="active" class="active" onclick="setStockTab('active')">В продаже <span class="tab-count" id="stockCntActive"></span></button>
@@ -327,7 +331,7 @@
     <section id="sec-history">
       <div class="page-head">
         <div class="page-head-row">
-          <h2>История операций</h2>
+          <h2>Операции</h2>
           <div class="head-actions" id="historyActions">
             <button class="icon-btn-lg" onclick="toggleChromeMenu(event,'history')" aria-label="Действия с историей" aria-haspopup="true" aria-expanded="false"><svg class="icon"><use href="#i-dots"/></svg></button>
           </div>
@@ -338,6 +342,18 @@
       <!-- меню переезжает к той вкладке, на которой его открыли -->
       <div class="menu-sheet" id="chromeMenu" role="menu"></div>
 
+      <!-- Тип записей: сегмент вместо выпадающего списка (значение — в historyFilter) -->
+      <div class="period-seg type-seg" role="tablist" aria-label="Тип записей">
+        <button class="active" data-v="" onclick="setHistType('')">Все</button>
+        <button data-v="Расход" onclick="setHistType('Расход')">Продажи</button>
+        <button data-v="Приход" onclick="setHistType('Приход')">Приход</button>
+        <button data-v="Корректировка" onclick="setHistType('Корректировка')">Правки</button>
+      </div>
+      <!-- Возвраты — отдельным разделом, переключение здесь, а не в нижнем меню -->
+      <div class="period-seg ops-seg" role="tablist">
+        <button class="active" onclick="showSection('history', document.querySelector('nav.bottom button[onclick*=\'history\']'))">Операции</button>
+        <button onclick="showSection('returns', document.querySelector('nav.bottom button[onclick*=\'history\']'))">Возвраты</button>
+      </div>
       <div class="t-caption" id="historySelCount" style="margin-bottom:var(--sp-3);color:var(--text-tertiary);">Выбрано: 0 записей</div>
 
       <div class="card">
@@ -385,22 +401,29 @@
     </section>
 
     <section id="sec-settings">
-      <div class="page-head"><h2>Настройки</h2><p>Параметры системы и резервные копии</p></div>
+      <div class="page-head"><h2>Настройки</h2></div>
+      <!-- Разделы: показываем по одному, чтобы не листать всё подряд -->
+      <nav class="set-seg" id="setSeg" role="tablist" aria-label="Разделы настроек">
+        <button type="button" data-g="account" class="active" onclick="setSettingsGroup('account')">Аккаунт</button>
+        <button type="button" data-g="store" onclick="setSettingsGroup('store')">Склад</button>
+        <button type="button" data-g="partners" onclick="setSettingsGroup('partners')">Партнёры</button>
+        <button type="button" data-g="backup" onclick="setSettingsGroup('backup')">Копии</button>
+      </nav>
 
-      <div class="card" data-emp="1">
+      <div data-group="account" class="card" data-emp="1">
         <div class="card-head"><span class="t-eyebrow">Аккаунт и синхронизация</span></div>
         <div class="alert" id="syncStatusBox" style="margin-top:0;"></div>
         <div class="btn-row" style="margin-top:var(--sp-3);">
           <button class="btn ghost" onclick="syncNowFromSettings()"><svg class="icon"><use href="#i-download"/></svg>Обновить</button>
           <button class="btn ghost" onclick="openPinModal('change')"><svg class="icon"><use href="#i-gear"/></svg>Сменить пароль</button>
         </div>
-        <button class="btn ghost admin-only" style="width:100%;margin-top:8px;" onclick="fullResyncFromSettings()"><svg class="icon"><use href="#i-inbox"/></svg>Полная пересинхронизация</button>
-        <div class="t-caption admin-only" style="margin:6px 0 0;color:var(--text-tertiary);">Если остатки на этом телефоне не совпадают с другим устройством — нажмите сюда: программа заново скачает всю историю операций и пересчитает остатки. Обычная «Обновить» подтягивает только новое, эта — перепроверяет всё.</div>
+        <button class="btn ghost admin-only" style="width:100%;margin-top:8px;" onclick="fullResyncFromSettings()"><svg class="icon"><use href="#i-inbox"/></svg>Пересчитать остатки</button>
+        <div class="t-caption admin-only" style="margin:6px 0 0;color:var(--text-tertiary);">Если цифры на этом телефоне расходятся с другим устройством, нажмите сюда. Перекачается вся история и пересчитаются остатки.</div>
         <button class="btn danger" style="width:100%;margin-top:8px;" onclick="syncSignOut()"><svg class="icon"><use href="#i-x"/></svg>Выйти из аккаунта</button>
         <div class="t-caption" style="margin-top:var(--sp-3);color:var(--text-tertiary);">Данные хранятся и на устройстве, и на сервере. Без сети приложение работает как обычно, а накопленное уходит при первой связи.</div>
       </div>
 
-      <div class="card">
+      <div data-group="store" class="card">
         <div class="card-head"><span class="t-eyebrow">Логотип в шапке</span></div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:var(--sp-3);">
           <div class="mark" style="width:52px;height:52px;"><img id="logoPreviewImg" src="icon-192.png" alt="Логотип" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
@@ -412,7 +435,7 @@
         </div>
         <input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
       </div>
-      <div class="card">
+      <div data-group="store" class="card">
         <div class="card-head"><span class="t-eyebrow">Параметры</span></div>
         <div class="field"><label>Название компании</label><input type="text" id="setCompany"></div>
         <div class="field"><label>Порог низкого остатка, шт</label><input type="number" id="setLowStock"></div>
@@ -431,7 +454,7 @@
         <div class="t-caption" style="margin-top:var(--sp-3);color:var(--text-tertiary);">Версия приложения: <span id="appVersion">—</span></div>
       </div>
 
-      <div class="card full-only">
+      <div data-group="partners" class="card full-only">
         <div class="card-head"><span class="t-eyebrow">Ставки комиссии партнёров</span></div>
         <div class="t-caption" style="margin-bottom:var(--sp-3);color:var(--text-tertiary);">Процент считается от суммы каждой продажи (кол-во × цена) в «Расходе». Продажа ровно на пороговую сумму попадает в нижнюю ставку (до 2500 включительно — 10%).</div>
         <div class="order-row">
@@ -451,14 +474,14 @@
         <button class="btn primary" style="margin-top:var(--sp-3);" onclick="saveCommTiers()"><svg class="icon"><use href="#i-check"/></svg>Сохранить ставки</button>
       </div>
 
-      <div class="card">
+      <div data-group="store" class="card">
         <div class="card-head"><span class="t-eyebrow">Звуки сканирования</span></div>
         <div id="soundRows"></div>
         <input type="file" id="soundFileInput" accept="audio/*" style="display:none" onchange="handleSoundUpload(event)">
         <div class="t-caption" style="margin-top:var(--sp-3);color:var(--text-tertiary);">Короткий файл до 400 КБ: mp3, wav или ogg. Пока свой звук не загружен, звучит стандартный сигнал. Загруженные звуки уезжают на другие ваши устройства вместе с данными.</div>
       </div>
 
-      <div class="card full-only" id="membersCard">
+      <div data-group="partners" class="card full-only" id="membersCard">
         <div class="card-head"><span class="t-eyebrow">Партнёры</span></div>
         <div class="t-caption" style="margin-bottom:8px;color:var(--text-tertiary);">Дайте партнёру этот код. Он ставит приложение → на входе жмёт «Войти как партнёр» → вводит код и придумывает свой логин с паролем. Партнёр видит склад, историю и баланс (сколько вы ему должны), но ничего не редактирует.</div>
         <div class="field-row">
@@ -471,7 +494,7 @@
         <div id="membersList"></div>
       </div>
 
-      <div class="card">
+      <div data-group="backup" class="card">
         <div class="card-head"><span class="t-eyebrow">Резервная копия</span></div>
         <div class="btn-row">
           <button class="btn ghost" onclick="exportBackup()"><svg class="icon"><use href="#i-download"/></svg>Экспорт</button>
@@ -487,7 +510,7 @@
         <div class="t-caption full-only" id="masterPublishCap" style="margin:6px 0 0;color:var(--text-tertiary);display:none;">Сервер станет точной копией этого телефона (лишнее на сервере удалится), а остальные телефоны при следующей связи сотрут свои данные и скачают эти. Вызывается сама после импорта файла.</div>
       </div>
 
-      <div class="card admin-only" id="accountsCard">
+      <div data-group="partners" class="card admin-only" id="accountsCard">
         <div class="card-head">
           <span class="t-eyebrow">Аккаунты клиентов</span>
           <button class="btn ghost sm" style="width:auto;" onclick="renderAccountsCard()"><svg class="icon"><use href="#i-download"/></svg>Обновить</button>
@@ -496,7 +519,7 @@
         <div id="accountsList"><div class="t-small">Откройте «Обновить», чтобы загрузить список.</div></div>
       </div>
 
-      <div class="card admin-only" id="snapshotsCard">
+      <div data-group="backup" class="card admin-only" id="snapshotsCard">
         <div class="card-head">
           <span class="t-eyebrow">Копии на сервере</span>
           <button class="btn ghost sm" style="width:auto;" onclick="snapshotNow()"><svg class="icon"><use href="#i-plus"/></svg>Сделать сейчас</button>
@@ -505,7 +528,7 @@
         <div id="snapshotsList"></div>
         <div class="alert" id="storageStatus"></div>
       </div>
-      <div class="card admin-only">
+      <div data-group="backup" class="card admin-only">
         <div class="card-head"><span class="t-eyebrow" style="color:var(--danger);">Опасная зона</span></div>
         <button class="btn danger" style="width:100%" onclick="wipeAll()"><svg class="icon"><use href="#i-trash"/></svg>Очистить все данные</button>
       </div>
@@ -515,7 +538,7 @@
     <section id="sec-finance">
       <div class="page-head">
         <div class="page-head-row">
-          <h2>Расходы и прибыль</h2>
+          <h2>Финансы</h2>
           <div class="head-actions">
             <button class="icon-btn-lg" onclick="toggleFinSettings(this)" aria-label="Расходы: реклама, поправки, комиссии банка" aria-expanded="false" aria-controls="finSettingsBox"><svg class="icon"><use href="#i-dots"/></svg></button>
           </div>
@@ -573,6 +596,13 @@
         <button id="finPeriodBtnRange" class="period-cal" onclick="openRangeModal()" aria-label="Выбрать свой период"><svg class="icon"><use href="#i-calendar"/></svg></button>
       </div>
       <div class="t-caption" id="finCustomRangeLabel" style="display:none;margin:-4px 0 var(--sp-3);color:var(--accent-strong);"></div>
+
+      <!-- Сводка: главная цифра и полоса долей — кольцо ниже для подробностей -->
+      <div class="card fin-hero">
+        <div class="fin-hero-k">Чистая прибыль</div>
+        <div class="fin-hero-v" id="finHeroAmount">0 ₽</div>
+        <div class="fin-bar" id="finBar"></div>
+      </div>
 
       <div class="card ring-card">
         <div class="card-head ring-head"><span class="t-eyebrow">Куда уходит прибыль</span><button class="icon-btn" onclick="toggleFinLegend(this)" aria-expanded="false" aria-controls="finLegend" aria-label="Показать статьи"><svg class="icon"><use href="#i-dots"/></svg></button></div>
@@ -724,8 +754,8 @@
     <button class="active" onclick="showSection('panel',this)"><svg class="icon"><use href="#i-home"/></svg>Панель</button>
     <button onclick="showSection('stock',this)"><svg class="icon"><use href="#i-box"/></svg>Склад</button>
     <button onclick="showSection('returns',this)"><svg class="icon"><use href="#i-inbox"/></svg>Возвраты</button>
-    <button onclick="showSection('history',this)"><svg class="icon"><use href="#i-clock"/></svg>История</button>
-    <button onclick="showSection('finance',this)"><svg class="icon"><use href="#i-wallet"/></svg>Расходы</button>
+    <button onclick="showSection('history',this)"><svg class="icon"><use href="#i-clock"/></svg>Операции</button>
+    <button onclick="showSection('finance',this)"><svg class="icon"><use href="#i-wallet"/></svg>Финансы</button>
     <button class="full-only" onclick="showSection('balance',this)"><svg class="icon"><use href="#i-coins"/></svg>Баланс</button>
   </nav>
 </div>
@@ -1036,20 +1066,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=125"></script>
-<script src="js/db.js?v=125"></script>
-<script src="js/sync-ui.js?v=125"></script>
-<script src="js/input.js?v=125"></script>
-<script src="js/returns-scan.js?v=125"></script>
-<script src="js/sounds.js?v=125"></script>
-<script src="js/stock-history.js?v=125"></script>
-<script src="js/xlsx-writer.js?v=125"></script>
-<script src="js/finance.js?v=125"></script>
-<script src="js/balance.js?v=125"></script>
-<script src="js/analytics.js?v=125"></script>
-<script src="js/settings-roles.js?v=125"></script>
-<script src="js/backup-labels.js?v=125"></script>
+<script src="sync-config.js?v=126"></script>
+<script src="js/db.js?v=126"></script>
+<script src="js/sync-ui.js?v=126"></script>
+<script src="js/input.js?v=126"></script>
+<script src="js/returns-scan.js?v=126"></script>
+<script src="js/sounds.js?v=126"></script>
+<script src="js/stock-history.js?v=126"></script>
+<script src="js/xlsx-writer.js?v=126"></script>
+<script src="js/finance.js?v=126"></script>
+<script src="js/balance.js?v=126"></script>
+<script src="js/analytics.js?v=126"></script>
+<script src="js/settings-roles.js?v=126"></script>
+<script src="js/backup-labels.js?v=126"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=125"></script>
+<script src="sync.js?v=126"></script>
 </body>
 </html>
