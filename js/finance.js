@@ -398,6 +398,27 @@ async function renderFinance(days, btnEl){
   await loadAdSpendToday();
   await renderAdSpendLog();
   renderBankFees(days);
+  await renderWeekDelta(days);
+}
+
+/* Чистая прибыль за неделю против прошлой недели — строкой под кольцом. */
+async function renderWeekDelta(days){
+  const el = document.getElementById('finWeekDelta');
+  if(!el) return;
+  if(days !== 7){ el.textContent = ''; return; }
+  const cur = getPeriodRange(7);
+  const DAY = 24 * 60 * 60 * 1000;
+  const prev = {start: cur.start - 7 * DAY, end: cur.start - 1};
+  const netFor = async r=>{
+    const f = await computeFinance(r);
+    const ads = await computeAdSpendForPeriod(r);
+    const partners = await computePartnerCommission(r);
+    return f.netProfit - ads - partners - bankFeesForPeriod(r);
+  };
+  const now = await netFor(7), before = await netFor(prev);
+  if(!before){ el.textContent = ''; return; }
+  const pct = Math.round((now - before) / Math.abs(before) * 100);
+  el.innerHTML = `<span style="color:${pct >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${pct >= 0 ? '▲ +' : '▼ '}${pct}%</span> к прошлой неделе`;
 }
 
 /* Комиссии банка, которые вводит владелец: список в настройках (синхронизируется
@@ -770,6 +791,39 @@ async function exportProductUnits(){
   downloadFile('otchet-poshtuchno-' + reportStamp(range) + '.xlsx', makeXlsx(sheets),
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   toast('Поштучный отчёт выгружен: ' + data.length + ' шт');
+}
+
+/* Выгрузка каталога товаров в Excel — чтобы загрузить в другое приложение
+   (например, Fulbro). Одна строка — один товар, заголовки понятные. */
+async function exportProductCatalog(){
+  const products = (await getAllLive('products')).sort((a, b)=> String(a.name).localeCompare(String(b.name), 'ru'));
+  if(!products.length){ toast('Товаров пока нет'); return; }
+  const header = ['Артикул (SKU)', 'Название', 'Штрихкод', 'Поставщик', 'Категория',
+    'Закупка, ₽', 'Цена продажи, ₽', 'Комиссия площадки, %', 'Налог, %', 'Упаковка, ₽',
+    'Скидка на доставку, ₽', 'Остаток, шт', 'В стопе'];
+  const rows = [header.map(v=> ({v, s: 2}))].concat(products.map(p=> [
+    {v: String(p.sku || ''), s: 3},
+    {v: String(p.name || ''), s: 3},
+    {v: String(p.barcode || ''), s: 3},
+    {v: String(p.supplier || ''), s: 3},
+    {v: String(p.category || ''), s: 3},
+    {v: Number(p.cost) || 0, s: 4},
+    {v: Number(p.price) || 0, s: 4},
+    {v: Number(p.commissionPercent) || 0, s: 4},
+    {v: Number(p.taxPercent) || 0, s: 4},
+    {v: Number(p.packaging) || 0, s: 4},
+    {v: Number(p.deliveryDiscount) || 0, s: 4},
+    {v: Number(p.totalStock) || 0, s: 5},
+    {v: p.stopped ? 'да' : 'нет', s: 3}
+  ]));
+  const sheets = [{
+    name: 'Товары',
+    cols: [18, 34, 18, 22, 18, 13, 16, 20, 11, 13, 20, 14, 10],
+    rows, freeze: 1
+  }];
+  downloadFile('tovary-' + todayDateKey() + '.xlsx', makeXlsx(sheets),
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  toast('Товары выгружены: ' + products.length + ' шт');
 }
 
 /* Учёт возвратов за выбранный период — по каждому товару: сколько вернул
