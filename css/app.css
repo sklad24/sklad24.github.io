@@ -942,3 +942,75 @@ h1,h2,h3,.t-display,.t-h1,.cal-title,.order-group h4{font-family:var(--font-body
 /* значки сегментов кольца и доли — нейтральные, без цветных плиток */
 .cat-icon{background:#F2F4F7 !important;color:#1D1F20 !important;}
 .cat-share{background:#F2F4F7 !important;color:#1D1F20 !important;}
+
+/* Настройки по разделам: переключатель, карточки, две колонки на компьютере */
+.set-seg{display:flex;gap:4px;padding:4px;margin:2px 0 16px;background:rgba(36,42,61,.07);border-radius:16px;overflow-x:auto;scrollbar-width:none;}
+.set-seg::-webkit-scrollbar{display:none;}
+.set-seg button{flex:1 0 auto;min-height:38px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:#5B6170;font-size:15px;font-weight:600;white-space:nowrap;transition:background .2s ease,color .2s ease;}
+.set-seg button.active{background:#FFFFFF;color:#1D1F20;box-shadow:0 2px 8px rgba(36,42,61,.12);}
+.set-seg button[hidden]{display:none;}
+.set-hidden{display:none !important;}
+#sec-settings .card{border-radius:22px;padding:20px 18px;border:1px solid rgba(255,255,255,.9);box-shadow:0 10px 30px rgba(36,42,61,.07);}
+#sec-settings .card-head{margin-bottom:12px;}
+#sec-settings .t-eyebrow{font-size:17px;font-weight:700;letter-spacing:-.01em;text-transform:none;color:#1D1F20;}
+@media (min-width:900px){
+  main:has(#sec-settings.active){max-width:none;padding-left:40px;padding-right:40px;}
+  #sec-settings.active{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px;align-items:start;}
+  #sec-settings > .page-head,#sec-settings > .set-seg{grid-column:1 / -1;}
+  #sec-settings .card{margin-bottom:0;}
+  #sec-settings .card.set-hidden{display:none !important;}
+  .set-seg{max-width:none;}
+}
+
+/* Настройки: кнопки потоньше, откат — календарём */
+#sec-settings .btn{min-height:34px;padding:6px 12px;font-size:14px;border-radius:10px;}
+#sec-settings .btn .icon{width:16px;height:16px;}
+.rb-cal{display:flex;gap:8px;align-items:center;}
+.rb-cal input[type=date]{flex:1;min-width:0;height:40px;border-radius:12px;padding:0 12px;border:1px solid var(--border,#E4E7ED);background:#fff;font-size:15px;}
+.rb-cal .btn{flex:none;width:auto;}
+
+/* Шапка склада: склады и действия в одной строке, вкладки — сегментом */
+.stock-bar{margin:4px 0 10px;}
+.stock-bar-row{display:flex;align-items:center;gap:14px;}
+.stock-bar .slot-seg{flex:1;min-width:0;margin:0;padding-right:4px;gap:14px;}
+.stock-bar .slot-seg button:last-child{margin-left:4px;}
+.stock-bar .head-actions{display:flex;gap:6px;flex:none;}
+.stock-bar .head-actions .icon-btn-lg{width:40px;height:40px;}
+.stock-tabs{display:flex;gap:0;background:#E3E6EC;border-radius:14px;padding:3px;margin:0 0 8px;}
+.stock-tabs button{flex:1;min-height:34px;padding:6px 10px;border:0;background:transparent;border-radius:11px;box-shadow:none;color:#5B6170;font-size:14px;font-weight:600;}
+.stock-tabs button.active{background:#FFFFFF;color:#1D1F20;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.stock-tabs button.active .tab-count{color:#5B6170;}
+.stock-tabs .icon{width:14px;height:14px;}
+
+/* Шторка: плотнее и спокойнее */
+.sheet-row{min-height:46px;padding:8px 10px;font-size:16px;}
+.sheet-ico{width:30px;height:30px;border-radius:9px;background:#EEF0FF;}
+.sheet-ico .icon{width:16px;height:16px;}
+.top-sheet{padding:8px 6px 10px;}
+
+/* Операции: заголовки дней и переключатель «Операции / Возвраты» */
+.day-head{font-size:13px;font-weight:700;color:#6B7080;text-transform:uppercase;letter-spacing:.05em;margin:14px 4px 6px;}
+.day-head:first-child{margin-top:4px;}
+.ops-seg{margin-bottom:12px;}
+.type-seg,.ops-seg{display:flex;gap:4px;padding:4px;background:rgba(36,42,61,.07);border-radius:16px;overflow:hidden;margin-bottom:12px;}
+.type-seg button,.ops-seg button{flex:1 1 0;min-width:0;min-height:36px;padding:0 6px;border:0;border-radius:12px;background:transparent;color:#5B6170;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.type-seg button.active,.ops-seg button.active{background:#FFFFFF;color:#1D1F20;box-shadow:0 2px 8px rgba(36,42,61,.12);}
+#historyFilter{display:none;}
+#sec-history .filter-row{flex-wrap:nowrap;align-items:center;}
+#sec-history #historySearch{flex:1 1 auto;min-width:0;}
+
+/* Финансы: сводка с полосой долей над кольцом */
+.fin-hero{text-align:left;padding:20px 18px;margin-bottom:12px;}
+.fin-hero-k{font-size:13px;font-weight:600;color:#6B7080;}
+.fin-hero-v{font-size:36px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#1D1F20;margin-top:2px;}
+.fin-bar{display:flex;height:10px;border-radius:999px;overflow:hidden;gap:2px;margin-top:14px;background:#EEF0F4;}
+.fin-bar i{display:block;height:100%;min-width:3px;}
+
+/* Панель выбора на «Складе»: прилипает к верху и не уезжает при листании */
+.sel-bar{position:sticky;top:80px;z-index:25;display:flex;align-items:center;gap:6px;margin:0 0 10px;padding:8px 8px 8px 14px;border-radius:18px;background:rgba(255,255,255,.72);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);border:1px solid rgba(255,255,255,.95);box-shadow:0 10px 26px rgba(36,42,61,.16),inset 0 1px 0 #fff;overflow-x:auto;scrollbar-width:none;}
+.sel-bar[hidden]{display:none;}
+.sel-bar::-webkit-scrollbar{display:none;}
+.sel-count{font-size:13px;font-weight:700;color:#1D1F20;white-space:nowrap;margin-right:2px;}
+.sel-bar button{flex:none;min-height:34px;padding:0 10px;border:0;border-radius:999px;background:rgba(36,42,61,.07);color:#1D1F20;font-size:14px;font-weight:600;white-space:nowrap;}
+.sel-bar .sel-go{background:#1D1F20;color:#fff;padding:0 16px;}
+.sel-bar .sel-x{width:34px;padding:0;margin-left:auto;background:transparent;font-size:20px;line-height:1;color:#5B6170;}
