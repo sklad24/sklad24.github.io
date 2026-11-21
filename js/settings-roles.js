@@ -327,6 +327,21 @@ function pickSlot(id){
 }
 function addSlot(){ Sync.beginAddSlot(); }
 
+/* Настройки по разделам: сверху переключатель, внизу — только карточки выбранного раздела. */
+function setSettingsGroup(g){
+  window.__setGroup = g;
+  document.querySelectorAll('#sec-settings .card[data-group]').forEach(c=> c.classList.toggle('set-hidden', c.dataset.group !== g));
+  document.querySelectorAll('#setSeg button').forEach(b=>{ const on = b.dataset.g === g; b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on)); });
+}
+/* Раздел без видимых карточек (например, «Партнёры» у партнёра) — кнопку прячем. */
+function refreshSettingsSeg(){
+  const have = {};
+  document.querySelectorAll('#sec-settings .card[data-group]').forEach(c=>{ if(!c.hidden && getComputedStyle(c).display !== 'none') have[c.dataset.group] = true; });
+  document.querySelectorAll('#setSeg button').forEach(b=> b.hidden = !have[b.dataset.g]);
+  if(!have[window.__setGroup]){ const first = ['account','store','partners','backup'].find(g=> have[g]); if(first) setSettingsGroup(first); }
+  else setSettingsGroup(window.__setGroup);
+}
+
 /* Копия товара на другой склад: штуки в том же количестве приходуются там
    при первом открытии того склада. Здесь ничего не списывается. Очередь
    копий общая для устройства. */
