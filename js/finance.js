@@ -282,6 +282,15 @@ function renderFinanceRing(f, adSpend, netProfitFinal, partnerComm, bankFees){
   finRingSelected = null;
   showFinRingTotal();
 
+  /* Сводка над кольцом: главная цифра и полоса долей в тех же цветах */
+  const heroTotal = segments.reduce((s, x)=> s + x.arcValue, 0);
+  const heroAmount = document.getElementById('finHeroAmount');
+  if(heroAmount) heroAmount.textContent = Math.round(netProfitFinal) + ' ₽';
+  const heroBar = document.getElementById('finBar');
+  if(heroBar) heroBar.innerHTML = heroTotal > 0
+    ? segments.filter(s=> s.arcValue > 0).map(s=> `<i style="flex:${s.arcValue};background:${s.color}" title="${escapeAttr(s.name)}"></i>`).join('')
+    : '';
+
   const cx = 110, cy = 110, r = 92, sw = 20;
   const circumference = 2*Math.PI*r;
   const total = segments.reduce((s,x)=>s+x.arcValue,0);
