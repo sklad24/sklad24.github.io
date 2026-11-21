@@ -264,21 +264,26 @@ async function renderStock(){
         </div>
       </div>`;
     }
-    return `<div class="row-item">
-      <input type="checkbox" class="inv-chk" aria-label="Выбрать для накладной" data-sku="${escapeAttr(p.sku)}" ${invoiceSelection.has(p.sku)?'checked':''} onchange="toggleInvoiceSelection('${escapeAttr(p.sku)}', this.checked)">
-      <div class="rmain">
-        <div class="rname">${escapeHtml(p.name)}</div>
-        <div class="rmeta">${escapeHtml(p.sku)} · ${p.barcode?escapeHtml(p.barcode):'без штрихкода'}${p.supplier?' · '+escapeHtml(p.supplier):''}</div>
-        ${fcHint}
-      </div>
-      <div class="rside">
-        ${qtyHtml}
-        <button class="icon-btn in" onclick="openQuickPrihod('${escapeAttr(p.sku)}')" aria-label="Быстрый приход"><svg class="icon"><use href="#i-in"/></svg></button>
-        <button class="icon-btn out" onclick="openQuickRashod('${escapeAttr(p.sku)}')" aria-label="Быстрый расход"><svg class="icon"><use href="#i-out"/></svg></button>
-        <button class="icon-btn edit" onclick="editProduct('${escapeAttr(p.sku)}')" aria-label="Изменить"><svg class="icon"><use href="#i-edit"/></svg></button>
+    /* Свайп: вправо — приход, влево — расход (см. bindStockSwipe). Кнопки
+       прихода и расхода из строки убраны; карандаш остаётся. */
+    return `<div class="swipe" data-sku="${escapeAttr(p.sku)}">
+      <div class="swipe-bg l"><svg class="icon"><use href="#i-in"/></svg>Приход</div>
+      <div class="swipe-bg r">Расход<svg class="icon"><use href="#i-out"/></svg></div>
+      <div class="row-item swipe-fg">
+        <input type="checkbox" class="inv-chk" aria-label="Выбрать для накладной" data-sku="${escapeAttr(p.sku)}" ${invoiceSelection.has(p.sku)?'checked':''} onchange="toggleInvoiceSelection('${escapeAttr(p.sku)}', this.checked)">
+        <div class="rmain">
+          <div class="rname">${escapeHtml(p.name)}</div>
+          <div class="rmeta">${escapeHtml(p.sku)} · ${p.barcode?escapeHtml(p.barcode):'без штрихкода'}${p.supplier?' · '+escapeHtml(p.supplier):''}</div>
+          ${fcHint}
+        </div>
+        <div class="rside">
+          ${qtyHtml}
+          <button class="icon-btn edit" onclick="editProduct('${escapeAttr(p.sku)}')" aria-label="Изменить"><svg class="icon"><use href="#i-edit"/></svg></button>
+        </div>
       </div>
     </div>`;
   }).join('');
+  bindStockSwipe(list);
   await updateProductCountPill();
   updateInvoiceSelCount();
   if(!emp) renderReorderCard(fc);
