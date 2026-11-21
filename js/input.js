@@ -11,6 +11,7 @@ const CHROME_MENUS = {
     {icon:'i-printer',  title:'Распечатать штрихкоды', action:'printBarcodesSelected()'},
     ...(isEmployee() ? [] : [{icon:'i-swap', title:'Скопировать весь товар на другой склад', action:'openTransferAll()'}]),
     ...(isEmployee() ? [] : [{icon:'i-out', title:'Мультизаказ из выбранных', action:'openMultiOrder()', needsSelection:true}]),
+    ...(isEmployee() ? [] : [{icon:'i-download', title:'Выгрузить товары в Excel', action:'exportProductCatalog()'}]),
     {icon:'i-download', title:'Накладная поставщику',  action:'exportSupplierInvoice()', needsSelection:true},
     stockTab === 'stop'
       ? {icon:'i-play',  title:'Вернуть в продажу',    action:'moveSelectedToStop(false)', needsSelection:true}
@@ -730,6 +731,76 @@ async function confirmQuickRashod(){
 
 /* ---- быстрый приход прямо со «Склада» (кнопка рядом с карандашиком) ----
    Та же логика, что и у быстрого расхода выше, только приёмка. */
+/* ---- свайп по строке товара: вправо — приход, влево — расход ---- */
+function bindStockSwipe(root){
+  root.querySelectorAll('.swipe').forEach(el=>{
+    const fg = el.querySelector('.swipe-fg');
+    const bgL = el.querySelector('.swipe-bg.l'), bgR = el.querySelector('.swipe-bg.r');
+    let x0 = null, dx = 0, moved = false;
+    const paint = d=>{
+      fg.style.transform = d ? `translateX(${d}px)` : '';
+      bgL.style.opacity = d > 0 ? Math.min(1, d / 80) : 0;
+      bgR.style.opacity = d < 0 ? Math.min(1, -d / 80) : 0;
+    };
+    el.addEventListener('pointerdown', e=>{
+      if(e.target.closest('input,button')) return;
+      x0 = e.clientX; dx = 0; moved = false;
+      fg.style.transition = 'none';
+      /* захват указателя: отпускание придёт сюда, даже если палец ушёл за край строки */
+      try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    el.addEventListener('pointermove', e=>{
+      if(x0 === null) return;
+      dx = Math.max(-120, Math.min(120, e.clientX - x0));
+      if(Math.abs(dx) > 8) moved = true;
+      if(moved) paint(dx);
+    });
+    const end = ()=>{
+      if(x0 === null) return;
+      const d = dx;
+      x0 = null;
+      fg.style.transition = 'transform .25s cubic-bezier(.22,.7,.2,1)';
+      paint(0);
+      if(!moved) return;
+      if(d > 80) openQuickPrihod(el.dataset.sku);
+      else if(d < -80) openQuickRashod(el.dataset.sku);
+    };
+    el.addEventListener('dragstart', e=> e.preventDefault());
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+  });
+}
+
+/* ---- шторка сверху вместо «⋯» на складе: то же меню, стеклянное ---- */
+let stockSheetActions = [];
+function openStockSheet(){
+  stockSheetActions = CHROME_MENUS.stock().filter(it=> !it.sep && !(it.needsSelection && invoiceSelection.size === 0));
+  document.getElementById('stockSheetList').innerHTML = stockSheetActions.map((it, i)=>`
+    <button type="button" class="sheet-row${it.danger ? ' danger' : ''}" onclick="runStockSheet(${i})">
+      <span class="sheet-ico"><svg class="icon"><use href="#${it.icon}"/></svg></span>${escapeHtml(it.title)}
+      <span class="sheet-chev">›</span>
+    </button>`).join('');
+  document.getElementById('stockSheetBg').classList.add('show');
+  document.getElementById('stockSheet').classList.add('show');
+}
+function closeStockSheet(){
+  document.getElementById('stockSheetBg').classList.remove('show');
+  document.getElementById('stockSheet').classList.remove('show');
+}
+function runStockSheet(i){
+  const it = stockSheetActions[i];
+  closeStockSheet();
+  if(!it) return;
+  setTimeout(()=>{ try{ new Function(it.action)(); }catch(e){ toast('Не получилось: ' + e.message); } }, 180);
+}
+/* Скан из шапки «Склада»: камера или сканер — ищем товар по штрихкоду. */
+function openStockScan(){
+  openScannerCapture(code=>{
+    document.getElementById('stockSearch').value = code;
+    renderStock();
+  });
+}
+
 /* ---- мультизаказ: выбранные галочками товары проходят одним заказом ----
    Ступень комиссии партнёрам берётся по сумме всего заказа, поэтому
    несколько товаров «единым заказом» дают меньший процент. */
