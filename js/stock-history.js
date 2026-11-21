@@ -303,6 +303,19 @@ function clearInvoiceSelection(){
 function updateInvoiceSelCount(){
   const el = document.getElementById('invoiceSelCount');
   if(el) el.textContent = 'Выбрано: '+invoiceSelection.size+' '+pluralTovar(invoiceSelection.size);
+  /* Панель действий над списком: видна, пока что-то выбрано, и едет вместе с листанием */
+  const bar = document.getElementById('selBar');
+  if(bar){
+    bar.hidden = invoiceSelection.size === 0;
+    const cnt = document.getElementById('selBarCount');
+    if(cnt) cnt.textContent = invoiceSelection.size + ' ' + pluralTovar(invoiceSelection.size);
+    const stopBtn = document.getElementById('selBarStop');
+    if(stopBtn){
+      const stop = stockTab === 'stop';
+      stopBtn.textContent = stop ? 'Вернуть' : 'В стоп';
+      stopBtn.setAttribute('onclick', 'moveSelectedToStop(' + !stop + ')');
+    }
+  }
 }
 function pluralTovar(n){
   const m = n%100;
@@ -720,7 +733,13 @@ async function renderHistory(){
     (await getAllLive('products')).forEach(p=> profitSkus[p.sku] = p);
     (await getAllLive('orders')).forEach(o=>{ if(o.opUid) partnerCut[o.opUid] = (partnerCut[o.opUid] || 0) + (Number(o.commission) || 0); });
   }
+  /* Записи по дням: над первой записью каждого дня — заголовок «Сегодня», «Вчера» или дата */
+  const todayStr = new Date().toLocaleDateString('ru-RU');
+  const yestStr = new Date(Date.now() - 86400000).toLocaleDateString('ru-RU');
+  let prevDay = null;
   list.innerHTML = filtered.slice(0,200).map(h=>{
+    const head = h.date !== prevDay ? `<div class="day-head">${h.date === todayStr ? 'Сегодня' : (h.date === yestStr ? 'Вчера' : h.date)}</div>` : '';
+    prevDay = h.date;
     let display, cls;
     if(h.type==='Расход'){ display = '−'+Math.abs(h.qty); cls='neg'; }
     else if(h.type==='Приход'){ display = '+'+Math.abs(h.qty); cls='pos'; }
@@ -746,13 +765,13 @@ async function renderHistory(){
        (а не текущий), чтобы можно было сверить прошлые записи между собой. */
     const valSpan = `<span class="rval ${cls}" style="cursor:pointer;" onclick="toggleHistoryStock(event,this,${h.id},'${escapeAttr(h.sku)}')">${display} шт</span>`;
     if(emp){
-      return `
+      return head + `
       <div class="row-item">
         <div class="rmain"><div class="rname">${escapeHtml(h.name)}</div>${skuLine}${dtLine}</div>
         <div class="rside">${sellPrice}${valSpan}</div>
       </div>`;
     }
-    return `
+    return head + `
     <div class="row-item">
       <input type="checkbox" class="hist-chk" aria-label="Выбрать запись" ${historySelection.has(h.id)?'checked':''} onchange="toggleHistorySelection(${h.id}, this.checked)">
       <div class="rmain"><div class="rname">${escapeHtml(h.name)}</div>${skuLine}${dtLine}</div>
