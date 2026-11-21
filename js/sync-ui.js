@@ -216,7 +216,7 @@ async function renderSyncStatusBox(){
   el.className = pending ? 'alert' : 'alert success';
   el.innerHTML = '<svg class="icon"><use href="#i-' + (pending ? 'clock' : 'check-circle') + '"/></svg><span>'
                + 'Вход: <b>' + escapeHtml(login) + '</b> (' + escapeHtml(role) + ')<br>'
-               + (pending ? ('Ждут отправки: ' + pending + '. Уйдут при первой связи.') : 'Всё синхронизировано между устройствами.')
+               + (pending ? ('Ждут отправки: ' + pending + '. Уйдут при первой связи.') : '')
                + '</span>';
 }
 async function syncNowFromSettings(){
@@ -350,6 +350,7 @@ function showSection(name, btn){
   if(name==='stock') renderStock();
   if(name==='inv') renderInvList();
   if(name==='returns') renderReturns();
+  if(name==='settings') refreshSettingsSeg();
   if(name==='history') renderHistory();
   if(name==='stats') { renderStats(); renderReports(); }
   if(name==='settings'){ renderStorageStatus(); renderSyncStatusBox(); renderSoundRows(); renderSnapshots(); renderAccountsCard(); }
