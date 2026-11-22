@@ -254,6 +254,7 @@ async function renderStock(){
       /* Кабинет сотрудника: только просмотр. Видно название, остаток и
          цену продажи; себестоимость, поставщик и правка скрыты. */
       return `<div class="row-item">
+        <span class="thumb">${p.photo ? `<img src="${p.photo}" alt="">` : '<svg class="icon"><use href="#i-box"/></svg>'}</span>
         <div class="rmain">
           <div class="rname">${escapeHtml(p.name)}</div>
           <div class="rmeta">${escapeHtml(p.sku)}${p.barcode?' · '+escapeHtml(p.barcode):''}</div>
@@ -271,6 +272,7 @@ async function renderStock(){
       <div class="swipe-bg r">Расход<svg class="icon"><use href="#i-out"/></svg></div>
       <div class="row-item swipe-fg">
         <input type="checkbox" class="inv-chk" aria-label="Выбрать для накладной" data-sku="${escapeAttr(p.sku)}" ${invoiceSelection.has(p.sku)?'checked':''} onchange="toggleInvoiceSelection('${escapeAttr(p.sku)}', this.checked)">
+        <span class="thumb">${p.photo ? `<img src="${p.photo}" alt="">` : '<svg class="icon"><use href="#i-box"/></svg>'}</span>
         <div class="rmain">
           <div class="rname">${escapeHtml(p.name)}</div>
           <div class="rmeta">${escapeHtml(p.sku)} · ${p.barcode?escapeHtml(p.barcode):'без штрихкода'}${p.supplier?' · '+escapeHtml(p.supplier):''}</div>
@@ -278,6 +280,8 @@ async function renderStock(){
         </div>
         <div class="rside">
           ${qtyHtml}
+          <button class="icon-btn in" onclick="openQuickPrihod('${escapeAttr(p.sku)}')" aria-label="Быстрый приход"><svg class="icon"><use href="#i-in"/></svg></button>
+          <button class="icon-btn out" onclick="openQuickRashod('${escapeAttr(p.sku)}')" aria-label="Быстрый расход"><svg class="icon"><use href="#i-out"/></svg></button>
           <button class="icon-btn edit" onclick="editProduct('${escapeAttr(p.sku)}')" aria-label="Изменить"><svg class="icon"><use href="#i-edit"/></svg></button>
         </div>
       </div>
@@ -359,6 +363,7 @@ function openProductModal(){
   document.getElementById('pmSku').disabled=false;
   document.getElementById('pmStock').dataset.shown = '';
   document.getElementById('pmDate').value = '';
+  pmPhotoData = ''; pmPhotoTouched = false; pmPhotoShow();
   clearFormErrors();
   document.getElementById('productModalBg').classList.add('show');
 }
@@ -394,9 +399,43 @@ async function editProduct(sku){
   document.getElementById('pmDeliveryDiscount').value=p.deliveryDiscount||0;
   document.getElementById('pmStock').value=p.totalStock||0;
   document.getElementById('pmStock').dataset.shown = String(p.totalStock||0);
+  pmPhotoData = p.photo || ''; pmPhotoTouched = false; pmPhotoShow();
   clearFormErrors();
   document.getElementById('productModalBg').classList.add('show');
 }
+
+/* ---- фото товара: сжимаем до небольшой картинки, чтобы список и синхронизация не тормозили ---- */
+let pmPhotoData = '';        // data URL фото в форме ('' — без фото)
+let pmPhotoTouched = false;  // меняли ли фото в этой форме
+function pmPhotoShow(){
+  const prev = document.getElementById('pmPhotoPrev');
+  if(prev) prev.innerHTML = pmPhotoData ? '<img src="' + pmPhotoData + '" alt="">' : '<svg class="icon"><use href="#i-box"/></svg>';
+  const drop = document.getElementById('pmPhotoDrop');
+  if(drop) drop.hidden = !pmPhotoData;
+}
+function shrinkImage(file, max, q){
+  return new Promise((res, rej)=>{
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', q));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error('Это не картинка')); };
+    img.src = url;
+  });
+}
+async function pmPhotoPicked(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  try{ pmPhotoData = await shrinkImage(f, 240, 0.72); pmPhotoTouched = true; pmPhotoShow(); }
+  catch(e){ toast('Не удалось открыть фото: ' + e.message); }
+  input.value = '';
+}
+function pmPhotoClear(){ pmPhotoData = ''; pmPhotoTouched = true; pmPhotoShow(); }
 function closeProductModal(){ document.getElementById('productModalBg').classList.remove('show'); }
 function clearFormErrors(){
   document.getElementById('errSku').textContent = 'Укажите SKU';
@@ -490,6 +529,9 @@ async function saveProduct(){
 
   /* отметка «Стоп» в форме не редактируется — сохраняем, как была */
   if(existing && existing.stopped) p.stopped = true;
+  /* фото: новое — если его меняли в форме, иначе — прежнее */
+  if(pmPhotoTouched) { if(pmPhotoData) p.photo = pmPhotoData; }
+  else if(existing && existing.photo) p.photo = existing.photo;
 
   const stockInput = document.getElementById('pmStock');
   const wantedStock = Number(stockInput.value)||0;
