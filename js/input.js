@@ -6,6 +6,9 @@
    ============================================================ */
 const CHROME_MENUS = {
   stock: ()=>[
+    {icon:'i-swap',     title:'Выбрать склад',         action:'openWarehousePicker()'},
+    {icon:'i-plus',     title:'Добавить склад',        action:'addSlot()'},
+    {sep:true},
     {icon:'i-plus',     title:'Добавить товар',        action:'openProductModal()'},
     {sep:true},
     {icon:'i-printer',  title:'Распечатать штрихкоды', action:'printBarcodesSelected()'},
