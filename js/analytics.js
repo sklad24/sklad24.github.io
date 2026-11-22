@@ -131,9 +131,11 @@ async function renderSalesCharts(){
   const chgText = chg === null ? '' : chg >= 200 ? ('в ' + fmtRate(times) + ' ' + razа) : ((chg >= 0 ? '+' : '−') + Math.abs(chg) + '%');
   const prevName = salesMode === 'week' ? '12 недель' : '30 дней';
   document.getElementById('salesHeadline').innerHTML =
-    `<div class="ch-hero num">${fmtNum(total)} ${unit}</div>
-     <div class="t-caption" style="color:var(--text-secondary);">за ${prevName}${chg === null ? '' :
-       ` · <span class="trend ${chg >= 0 ? 'up' : 'down'}">${trendIcon(chg >= 0)}${chgText}</span> ${chg >= 200 ? 'больше, чем за' : 'к'} предыдущие ${prevName}`}</div>`;
+    `<div class="ch-kpi">
+       <div class="ch-hero num">${fmtNum(total)} ${unit}</div>
+       <div class="t-caption" style="color:var(--text-secondary);">за ${prevName}${chg === null ? '' :
+         ` · <span class="trend ${chg >= 0 ? 'up' : 'down'}">${trendIcon(chg >= 0)}${chgText}</span> ${chg >= 200 ? 'больше, чем за' : 'к'} предыдущие ${prevName}`}</div>
+     </div>`;
   if(total === 0){
     box.innerHTML = emptyLine('i-alert', 'Продаж за этот отрезок нет');
   } else {
