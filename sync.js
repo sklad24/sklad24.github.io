@@ -429,7 +429,7 @@
         cost: num(p.cost), price: num(p.price),
         commission_percent: num(p.commissionPercent), tax_percent: num(p.taxPercent),
         packaging: num(p.packaging), delivery_discount: num(p.deliveryDiscount),
-        stopped: Boolean(p.stopped),
+        stopped: Boolean(p.stopped), photo: p.photo || null,
         updated_at: num(p.updatedAt), deleted_at: p.deletedAt || null
       }),
       toLocal: r => ({
@@ -438,7 +438,7 @@
         cost: num(r.cost), price: num(r.price),
         commissionPercent: num(r.commission_percent), taxPercent: num(r.tax_percent),
         packaging: num(r.packaging), deliveryDiscount: num(r.delivery_discount),
-        stopped: Boolean(r.stopped),
+        stopped: Boolean(r.stopped), photo: r.photo || undefined,
         updatedAt: num(r.updated_at), deletedAt: r.deleted_at || undefined,
         totalStock: 0            // пересчитается из операций
       }),
