@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=132">
+<link rel="stylesheet" href="css/app.css?v=133">
 </head>
 <body>
 
@@ -200,8 +200,7 @@
       <div class="stock-sticky">
       <div class="stock-bar">
         <div class="stock-bar-row">
-          <!-- Склады на этом устройстве: переключение без выхода из аккаунта -->
-          <div class="slot-seg" id="slotSeg" role="tablist" aria-label="Склады"></div>
+          <!-- Склады: «⋯» → «Выбрать склад» / «Добавить склад» -->
           <div class="head-actions" id="stockActions">
             <button class="icon-btn-lg" onclick="openStockSheet()" aria-label="Действия со складом" aria-haspopup="dialog"><svg class="icon"><use href="#i-dots"/></svg></button>
           </div>
@@ -557,8 +556,7 @@
         <!-- Ставка вместо ежедневного ввода: сумма сама учитывается за
              каждый день, пока её не поменяли. -->
         <div class="filter-row">
-          <input type="number" id="adRateInput" inputmode="numeric" placeholder="Сумма в день, ₽">
-          <button class="btn primary sm" style="width:auto;white-space:nowrap;" onclick="saveAdRate()"><svg class="icon"><use href="#i-check"/></svg>Применить</button>
+          <input type="number" id="adRateInput" inputmode="numeric" placeholder="Сумма в день, ₽" oninput="autoSaveAdRate()">
         </div>
         <div class="t-caption" id="adRateNow" style="margin-top:8px;color:var(--text-tertiary);"></div>
       </div>
@@ -572,10 +570,6 @@
           <input type="date" id="adSpendDate" onchange="loadAdSpendForDate()" aria-label="День">
           <input type="number" id="adSpendInput" inputmode="numeric" placeholder="Сумма, ₽" oninput="markAdSpendDirty()">
         </div>
-        <div class="btn-row" style="margin-top:8px;">
-          <button class="btn ghost" onclick="clearAdSpendDay()"><svg class="icon"><use href="#i-x"/></svg>Убрать</button>
-          <button class="btn primary" onclick="saveAdSpend()"><svg class="icon"><use href="#i-check"/></svg>Записать</button>
-        </div>
         <div class="t-caption" style="margin-top:8px;color:var(--text-tertiary);">Нужна, когда в конкретный день потратили не как обычно. Без поправки за день берётся сумма выше.</div>
       </div>
 
@@ -583,8 +577,7 @@
         <div class="card-head"><span class="t-eyebrow">Комиссии банка</span></div>
         <div class="filter-row">
           <input type="date" id="bankFeeDate" aria-label="Дата" style="flex:0 0 auto;width:auto;min-width:150px;white-space:nowrap;">
-          <input type="number" id="bankFeeInput" inputmode="numeric" placeholder="Сумма, ₽">
-          <button class="btn primary sm" style="width:auto;white-space:nowrap;" onclick="saveBankFee()"><svg class="icon"><use href="#i-check"/></svg>Записать</button>
+          <input type="number" id="bankFeeInput" inputmode="numeric" placeholder="Сумма, ₽" onchange="saveBankFee()">
         </div>
         <div class="t-caption" id="bankFeeTotal" style="margin-top:8px;color:var(--text-tertiary);"></div>
         <div class="t-caption" style="margin-top:4px;color:var(--text-tertiary);">Вычитается из чистой прибыли за период, в который попадает дата.</div>
@@ -874,6 +867,13 @@
   <div id="stockSheetList"></div>
 </div>
 
+<!-- Второе окно: выбор склада (открывается из «⋯» → «Выбрать склад») -->
+<div class="sheet-scrim" id="warehouseSheetBg" onclick="closeWarehousePicker()"></div>
+<div class="top-sheet" id="warehouseSheet" role="dialog" aria-label="Выбор склада">
+  <div class="sheet-grip" aria-hidden="true"></div>
+  <div id="warehouseSheetList"></div>
+</div>
+
 <!-- Мультизаказ: выбранные галочками товары проходят одним заказом -->
 <div class="modal-bg" id="multiOrderModalBg" data-close="closeMultiOrder">
   <div class="modal">
@@ -1070,20 +1070,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=132"></script>
-<script src="js/db.js?v=132"></script>
-<script src="js/sync-ui.js?v=132"></script>
-<script src="js/input.js?v=132"></script>
-<script src="js/returns-scan.js?v=132"></script>
-<script src="js/sounds.js?v=132"></script>
-<script src="js/stock-history.js?v=132"></script>
-<script src="js/xlsx-writer.js?v=132"></script>
-<script src="js/finance.js?v=132"></script>
-<script src="js/balance.js?v=132"></script>
-<script src="js/analytics.js?v=132"></script>
-<script src="js/settings-roles.js?v=132"></script>
-<script src="js/backup-labels.js?v=132"></script>
+<script src="sync-config.js?v=133"></script>
+<script src="js/db.js?v=133"></script>
+<script src="js/sync-ui.js?v=133"></script>
+<script src="js/input.js?v=133"></script>
+<script src="js/returns-scan.js?v=133"></script>
+<script src="js/sounds.js?v=133"></script>
+<script src="js/stock-history.js?v=133"></script>
+<script src="js/xlsx-writer.js?v=133"></script>
+<script src="js/finance.js?v=133"></script>
+<script src="js/balance.js?v=133"></script>
+<script src="js/analytics.js?v=133"></script>
+<script src="js/settings-roles.js?v=133"></script>
+<script src="js/backup-labels.js?v=133"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=132"></script>
+<script src="sync.js?v=133"></script>
 </body>
 </html>
