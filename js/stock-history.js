@@ -279,10 +279,12 @@ async function renderStock(){
             <div class="rmeta">${escapeHtml(p.sku)} · ${p.barcode?escapeHtml(p.barcode):'без штрихкода'}${p.supplier?' · '+escapeHtml(p.supplier):''}</div>
             ${fcHint}
           </div>
+          <div class="sc-side">
+            ${qtyHtml}
+          </div>
         </div>
         <div class="sc-actions">
           <button class="btn ghost sc-btn sc-in" onclick="openQuickPrihod('${escapeAttr(p.sku)}')">Приход</button>
-          <div class="sc-qty-box">${qtyHtml}</div>
           <button class="btn ghost sc-btn sc-out" onclick="openQuickRashod('${escapeAttr(p.sku)}')">Расход</button>
           <button class="btn ghost sc-btn sc-edit" onclick="editProduct('${escapeAttr(p.sku)}')" aria-label="Изменить"><svg class="icon"><use href="#i-edit"/></svg></button>
         </div>
