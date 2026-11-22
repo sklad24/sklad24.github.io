@@ -450,10 +450,12 @@ function bankFeesForPeriod(days){
     return sum + (Number(b.amount) || 0);
   }, 0);
 }
+/* Комиссия банка записывается сама, когда сумму ввели и поле покинули (кнопки нет). */
 async function saveBankFee(){
   const raw = document.getElementById('bankFeeInput').value;
+  if(raw === '') return;
   const val = Number(raw);
-  if(raw === '' || isNaN(val) || val < 0){ toast('Введите сумму в рублях'); return; }
+  if(isNaN(val) || val < 0){ toast('Введите сумму в рублях'); return; }
   const dateKey = document.getElementById('bankFeeDate').value || todayDateKey();
   settings.bankFees = bankFeeList().concat([{id: newUid(), dateKey, amount: val}]);
   await saveAppSettings();
@@ -937,10 +939,17 @@ async function computeAdSpendForPeriod(days){
   return total;
 }
 
+/* Ставка сохраняется сама через секунду после последней цифры — кнопки не нужно. */
+let adRateTimer = null;
+function autoSaveAdRate(){
+  clearTimeout(adRateTimer);
+  adRateTimer = setTimeout(()=> saveAdRate(), 700);
+}
 async function saveAdRate(){
   const raw = document.getElementById('adRateInput').value;
+  if(raw === '') return;
   const val = Number(raw);
-  if(raw === '' || isNaN(val) || val < 0){ toast('Введите сумму в рублях'); return; }
+  if(isNaN(val) || val < 0){ toast('Введите сумму в рублях'); return; }
 
   const today = todayDateKey();
   const list = adRates().filter(r=> String(r.from) !== today);   // за сегодня ставка одна
@@ -973,21 +982,35 @@ function selectedAdSpendKey(){
   const el = document.getElementById('adSpendDate');
   return (el && el.value) ? el.value : todayDateKey();
 }
+/* Поправка сохраняется сама: через секунду после последней цифры. Пустое поле — значит убрать поправку. */
+let adSpendTimer = null;
 function markAdSpendDirty(){
   const mark = document.getElementById('adSpendSavedMark');
   if(mark) mark.style.display = 'none';
+  clearTimeout(adSpendTimer);
+  const key = selectedAdSpendKey(), raw = document.getElementById('adSpendInput').value;
+  adSpendTimer = setTimeout(()=> saveAdSpend(key, raw), 700);
 }
 function showAdSpendSaved(saved){
   const mark = document.getElementById('adSpendSavedMark');
   if(mark) mark.style.display = saved ? 'inline' : 'none';
 }
 
-async function saveAdSpend(){
-  const raw = document.getElementById('adSpendInput').value;
+async function saveAdSpend(key = selectedAdSpendKey(), raw = document.getElementById('adSpendInput').value){
+  if(raw === ''){
+    /* поле очистили — поправка за день убирается сама */
+    const entry = await get('adspend', key);
+    if(entry && !entry.deletedAt){
+      await softDelete('adspend', key);
+      showAdSpendSaved(false);
+      toast('Поправка убрана — день считается по обычной сумме');
+      await renderFinance(currentFinancePeriod, null);
+    }
+    return;
+  }
   const val = Number(raw);
-  if(raw === '' || isNaN(val) || val < 0){ toast('Введите сумму в рублях'); return; }
+  if(isNaN(val) || val < 0){ toast('Введите сумму в рублях'); return; }
 
-  const key = selectedAdSpendKey();
   const day = new Date(key + 'T12:00:00');
   await put('adspend', {
     dateKey: key,
@@ -1010,17 +1033,6 @@ async function loadAdSpendForDate(){
   showAdSpendSaved(Boolean(entry && !entry.deletedAt));
 }
 
-/* Убрать поправку — значит вернуть дню обычную ежедневную сумму. */
-async function clearAdSpendDay(){
-  const key = selectedAdSpendKey();
-  const entry = await get('adspend', key);
-  if(!entry || entry.deletedAt){ toast('За этот день поправки нет'); return; }
-  await softDelete('adspend', key);
-  document.getElementById('adSpendInput').value = '';
-  showAdSpendSaved(false);
-  toast('Поправка убрана — день считается по обычной сумме');
-  await renderFinance(currentFinancePeriod, null);
-}
 
 async function loadAdSpendToday(){
   const dateEl = document.getElementById('adSpendDate');
