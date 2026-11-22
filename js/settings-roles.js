@@ -326,6 +326,24 @@ function pickSlot(id){
   Sync.switchSlot(id);
 }
 function addSlot(){ Sync.beginAddSlot(); }
+/* «⋯» → «Выбрать склад»: второе окно поверх с перечнем складов на этом устройстве. */
+function openWarehousePicker(){
+  if(!window.Sync || !Sync.slots) return;
+  const active = Sync.activeSlotId();
+  document.getElementById('warehouseSheetList').innerHTML = Sync.slots().map((s, i)=> {
+    const on = s.id === active;
+    return `<button type="button" class="sheet-row${on ? ' on' : ''}" onclick="pickSlot('${escapeAttr(s.id)}')">
+      <span class="sheet-ico"><svg class="icon"><use href="#i-box"/></svg></span>Склад ${i + 1}
+      <span class="sheet-chev">${on ? '✓' : '›'}</span>
+    </button>`;
+  }).join('');
+  document.getElementById('warehouseSheetBg').classList.add('show');
+  document.getElementById('warehouseSheet').classList.add('show');
+}
+function closeWarehousePicker(){
+  document.getElementById('warehouseSheetBg').classList.remove('show');
+  document.getElementById('warehouseSheet').classList.remove('show');
+}
 
 /* Настройки по разделам: сверху переключатель, внизу — только карточки выбранного раздела. */
 function setSettingsGroup(g){
