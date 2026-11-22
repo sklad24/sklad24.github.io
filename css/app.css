@@ -585,7 +585,11 @@ body.labels-open{overflow:hidden;}
 .ch-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:var(--sp-2);}
 .ch-controls .ch-seg{flex:1 1 150px;margin-bottom:0;}
 .ch-hero{font-size:26px;font-weight:700;color:var(--text);line-height:1.1;margin-top:4px;}
-.ch-wrap{position:relative;margin-top:var(--sp-2);}
+/* итог за период — отдельной плашкой: крупная цифра и строка сравнения под ней */
+.ch-kpi{margin:var(--sp-3) 0 var(--sp-2);padding:14px 16px 16px;border-radius:16px;background:rgba(255,255,255,.7);border:1px solid #E6E9EF;}
+.ch-kpi .ch-hero{margin-top:0;}
+.ch-kpi .t-caption{margin-top:6px;}
+.ch-wrap{position:relative;margin-top:var(--sp-3);}
 .ch-svg{display:block;width:100%;height:auto;touch-action:pan-y;}
 .ch-svg .ch-bar{fill:var(--accent);transition:opacity .12s;}
 .ch-svg .ch-bar.dim{opacity:.35;}
@@ -642,6 +646,9 @@ body.labels-open{overflow:hidden;}
 
 /* окно, открывающееся сверху (выбор возврата): клавиатура снизу его не закрывает */
 .modal-bg.top-sheet{align-items:flex-start;}
+/* фон окна — просто затемнение на весь экран; панельные стили «шторки» (сдвиг, рамка, прокрутка)
+   относятся к самому окну, а не к фону — иначе окно уезжало за экран и не открывалось */
+.modal-bg.top-sheet{position:fixed;top:0;right:0;bottom:0;left:0;transform:none;max-height:none;overflow:visible;padding:0;margin:0;border:0;border-radius:0;background:rgba(40,44,64,.4);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
 .modal-bg.top-sheet .modal{border-radius:0 0 var(--r-lg) var(--r-lg);padding-top:calc(var(--sp-4) + env(safe-area-inset-top));padding-bottom:var(--sp-3);max-height:100dvh;overflow:hidden;display:flex;flex-direction:column;animation:topSheetIn .18s ease;}
 .modal-bg.top-sheet #returnPickList{flex:1 1 auto;min-height:0;}
 @keyframes topSheetIn{from{transform:translateY(-24px);opacity:.4;}to{transform:none;opacity:1;}}
@@ -893,6 +900,11 @@ nav.bottom button .icon,.quick-tile .qt-ic .icon{width:24px;height:24px;}
 .empty-state .et2{font-size:14px;color:var(--text-secondary);max-width:300px;}
 #sec-history .filter-row{flex-wrap:wrap;}
 #sec-history .filter-row > #historySearch{flex:1 1 100%;}
+/* Операции: поиск и счётчик «Выбрано» читаются лучше; между заголовком дня и карточкой — воздух */
+#sec-history #historySearch{background:#FFFFFF;border:1px solid #D5DAE3;color:var(--text);}
+#sec-history #historySearch::placeholder{color:#737A8B;opacity:1;}
+#sec-history #historySelCount{color:var(--text-secondary) !important;font-size:14px;font-weight:600;}
+#sec-history .day-head{margin:26px 4px 8px;}
 
 /* шапка: логотип и настройки — одинаковые скруглённые квадраты, под
    названием одна строка состояния тем же шрифтом (v93) */
@@ -1113,3 +1125,16 @@ body{background:radial-gradient(120% 60% at 8% 0%,#DCE6FF 0%,transparent 60%),ra
 .stock-card .sc-btn.sc-out{background:#FDECEE;color:#D92D42;}
 .stock-card .sc-btn.sc-in:hover{background:#D6F0E1;}
 .stock-card .sc-btn.sc-out:hover{background:#FBDDE2;}
+/* Вариант A: «Приход» и «Расход» одной фигурой слева, количество в рамке справа, карандаш — в правом верхнем углу */
+.stock-card{position:relative;}
+.stock-card .sc-top .rmain{padding-right:40px;}
+.stock-card .sc-edit{position:absolute;top:10px;right:10px;width:36px;height:36px;min-height:36px;padding:0;border-radius:11px;flex:none;}
+.stock-card .sc-actions{align-items:center;}
+.stock-card .sc-pair{flex:1;display:flex;border-radius:14px;overflow:hidden;border:1px solid #E6E9EF;background:#fff;}
+.stock-card .sc-actions .sc-pair .sc-btn{flex:1;width:auto;height:40px;min-height:40px;border-radius:0;border:0;}
+.stock-card .sc-actions .sc-pair .sc-btn+.sc-btn{border-left:1px solid #E6E9EF;}
+.sc-qty-box{flex:0 0 auto;min-width:96px;height:40px;padding:0 12px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:12px;background:#fff;}
+.sc-qty-box .stock-qty{display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.sc-qty-box .q-extra{display:flex;gap:6px;font-size:11px;}
+/* склады — в «⋯»: кнопка справа, полоски переключения больше нет */
+#stockActions{margin-left:auto;}
