@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=130">
+<link rel="stylesheet" href="css/app.css?v=131">
 </head>
 <body>
 
@@ -499,7 +499,7 @@
         <div id="membersList"></div>
       </div>
 
-      <div data-group="backup" class="card">
+      <div data-group="account" class="card">
         <div class="card-head"><span class="t-eyebrow">Резервная копия</span></div>
         <div class="btn-row">
           <button class="btn ghost" onclick="exportBackup()"><svg class="icon"><use href="#i-download"/></svg>Экспорт</button>
@@ -524,7 +524,7 @@
         <div id="accountsList"><div class="t-small">Откройте «Обновить», чтобы загрузить список.</div></div>
       </div>
 
-      <div data-group="backup" class="card admin-only" id="snapshotsCard">
+      <div data-group="account" class="card admin-only" id="snapshotsCard">
         <div class="card-head">
           <span class="t-eyebrow">Копии на сервере</span>
           <button class="btn ghost sm" style="width:auto;" onclick="snapshotNow()"><svg class="icon"><use href="#i-plus"/></svg>Сделать сейчас</button>
@@ -533,9 +533,9 @@
         <div id="snapshotsList"></div>
         <div class="alert" id="storageStatus"></div>
       </div>
-      <div data-group="backup" id="dangerCard" class="card admin-only">
+      <div data-group="account" id="dangerCard" class="card admin-only">
         <div class="card-head"><span class="t-eyebrow" style="color:var(--danger);">Опасная зона</span></div>
-        <button class="btn danger" style="width:100%" onclick="wipeAll()"><svg class="icon"><use href="#i-trash"/></svg>Очистить все данные</button>
+        <button class="btn danger" style="width:auto;" onclick="wipeAll()"><svg class="icon"><use href="#i-trash"/></svg>Очистить все данные</button>
       </div>
     </section>
 
@@ -637,7 +637,7 @@
               <button data-v="revenue" onclick="setSalesMetric('revenue')">Рубли</button>
             </div>
           </div>
-          <div id="salesHeadline"></div>
+          <div id="salesHeadline" class="ch-head"></div>
           <div class="ch-wrap" id="salesChart"></div>
           <details class="ch-table"><summary>Показать цифрами</summary><div id="salesTable"></div></details>
         </div>
@@ -1070,20 +1070,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=130"></script>
-<script src="js/db.js?v=130"></script>
-<script src="js/sync-ui.js?v=130"></script>
-<script src="js/input.js?v=130"></script>
-<script src="js/returns-scan.js?v=130"></script>
-<script src="js/sounds.js?v=130"></script>
-<script src="js/stock-history.js?v=130"></script>
-<script src="js/xlsx-writer.js?v=130"></script>
-<script src="js/finance.js?v=130"></script>
-<script src="js/balance.js?v=130"></script>
-<script src="js/analytics.js?v=130"></script>
-<script src="js/settings-roles.js?v=130"></script>
-<script src="js/backup-labels.js?v=130"></script>
+<script src="sync-config.js?v=131"></script>
+<script src="js/db.js?v=131"></script>
+<script src="js/sync-ui.js?v=131"></script>
+<script src="js/input.js?v=131"></script>
+<script src="js/returns-scan.js?v=131"></script>
+<script src="js/sounds.js?v=131"></script>
+<script src="js/stock-history.js?v=131"></script>
+<script src="js/xlsx-writer.js?v=131"></script>
+<script src="js/finance.js?v=131"></script>
+<script src="js/balance.js?v=131"></script>
+<script src="js/analytics.js?v=131"></script>
+<script src="js/settings-roles.js?v=131"></script>
+<script src="js/backup-labels.js?v=131"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=130"></script>
+<script src="sync.js?v=131"></script>
 </body>
 </html>
