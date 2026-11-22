@@ -63,7 +63,7 @@ function niceMax(v){
 /* Столбики: тонкие, скругление 4px только сверху, 2px зазор, одна ось,
    сетка приглушённая. Подписан только максимум — остальное по касанию. */
 function barChartSvg(buckets, unit){
-  const W = 340, H = 180, L = 40, R = 6, T = 16, B = 22;
+  const W = 340, H = 130, L = 40, R = 6, T = 14, B = 20;
   const max = niceMax(Math.max(...buckets.map(b=> b.value)));
   const n = buckets.length, slot = (W-L-R)/n, bw = Math.max(1.5, slot - 2);
   const y = v => T + (H-T-B) * (1 - v/max);
