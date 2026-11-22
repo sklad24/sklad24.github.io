@@ -490,3 +490,8 @@ async function adminResetPassword(i){
   const r = await Sync.adminSetPassword(a.id, pass.trim());
   toast(r.ok ? ('Пароль для «' + login + '» изменён. Передайте его человеку') : ('Не вышло: ' + r.error));
 }
+
+/* Высота шапки приложения — чтобы закреплённая шапка склада становилась ровно под ней */
+function measureChrome(){ const h = document.querySelector("header.top"); if(h) document.documentElement.style.setProperty("--chrome-h", Math.round(h.getBoundingClientRect().bottom) + "px"); }
+window.addEventListener("resize", measureChrome);
+window.addEventListener("load", measureChrome);
