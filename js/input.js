@@ -731,6 +731,14 @@ async function confirmQuickRashod(){
 
 /* ---- быстрый приход прямо со «Склада» (кнопка рядом с карандашиком) ----
    Та же логика, что и у быстрого расхода выше, только приёмка. */
+/* ---- период в «Операциях»: те же периоды, что на «Финансах» ---- */
+function setHistPeriod(p, btn){
+  historyRange = (p === 'all') ? null : getPeriodRange(p);
+  document.querySelectorAll('#histPeriodSeg button').forEach(b=> b.classList.toggle('active', b === btn));
+  updateHistoryRangeLabel();
+  renderHistory();
+}
+
 /* ---- тип записей в «Операциях»: сегмент пишет в скрытый выбор и перерисовывает список ---- */
 function setHistType(v){
   const sel = document.getElementById('historyFilter');
