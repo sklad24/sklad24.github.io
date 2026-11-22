@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=126">
+<link rel="stylesheet" href="css/app.css?v=127">
 </head>
 <body>
 
@@ -349,10 +349,14 @@
         <button data-v="Приход" onclick="setHistType('Приход')">Приход</button>
         <button data-v="Корректировка" onclick="setHistType('Корректировка')">Правки</button>
       </div>
-      <!-- Возвраты — отдельным разделом, переключение здесь, а не в нижнем меню -->
-      <div class="period-seg ops-seg" role="tablist">
-        <button class="active" onclick="showSection('history', document.querySelector('nav.bottom button[onclick*=\'history\']'))">Операции</button>
-        <button onclick="showSection('returns', document.querySelector('nav.bottom button[onclick*=\'history\']'))">Возвраты</button>
+      <!-- Период: как на «Финансах» -->
+      <div class="period-seg" id="histPeriodSeg">
+        <button class="active" data-p="all" onclick="setHistPeriod('all',this)">Все</button>
+        <button data-p="1" onclick="setHistPeriod(1,this)">Сегодня</button>
+        <button data-p="yesterday" onclick="setHistPeriod('yesterday',this)">Вчера</button>
+        <button data-p="7" onclick="setHistPeriod(7,this)">Неделя</button>
+        <button data-p="thisMonth" onclick="setHistPeriod('thisMonth',this)">Месяц</button>
+        <button id="historyDateBtn" class="period-cal" onclick="openRangeModal('history')" aria-label="Выбрать свой период"><svg class="icon"><use href="#i-calendar"/></svg></button>
       </div>
       <div class="t-caption" id="historySelCount" style="margin-bottom:var(--sp-3);color:var(--text-tertiary);">Выбрано: 0 записей</div>
 
@@ -365,7 +369,6 @@
             <option value="Расход">Расход</option>
             <option value="Корректировка">Корректировка</option>
           </select>
-          <button class="icon-btn-lg" id="historyDateBtn" onclick="openRangeModal('history')" aria-label="Выбрать даты"><svg class="icon"><use href="#i-calendar"/></svg></button>
         </div>
         <div class="t-caption" id="historyRangeLabel" style="display:none;margin-top:8px;color:var(--accent-strong);"></div>
         <div id="historyList"></div>
@@ -1066,20 +1069,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=126"></script>
-<script src="js/db.js?v=126"></script>
-<script src="js/sync-ui.js?v=126"></script>
-<script src="js/input.js?v=126"></script>
-<script src="js/returns-scan.js?v=126"></script>
-<script src="js/sounds.js?v=126"></script>
-<script src="js/stock-history.js?v=126"></script>
-<script src="js/xlsx-writer.js?v=126"></script>
-<script src="js/finance.js?v=126"></script>
-<script src="js/balance.js?v=126"></script>
-<script src="js/analytics.js?v=126"></script>
-<script src="js/settings-roles.js?v=126"></script>
-<script src="js/backup-labels.js?v=126"></script>
+<script src="sync-config.js?v=127"></script>
+<script src="js/db.js?v=127"></script>
+<script src="js/sync-ui.js?v=127"></script>
+<script src="js/input.js?v=127"></script>
+<script src="js/returns-scan.js?v=127"></script>
+<script src="js/sounds.js?v=127"></script>
+<script src="js/stock-history.js?v=127"></script>
+<script src="js/xlsx-writer.js?v=127"></script>
+<script src="js/finance.js?v=127"></script>
+<script src="js/balance.js?v=127"></script>
+<script src="js/analytics.js?v=127"></script>
+<script src="js/settings-roles.js?v=127"></script>
+<script src="js/backup-labels.js?v=127"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=126"></script>
+<script src="sync.js?v=127"></script>
 </body>
 </html>
