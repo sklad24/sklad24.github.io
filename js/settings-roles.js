@@ -335,6 +335,8 @@ function setSettingsGroup(g){
 }
 /* Раздел без видимых карточек (например, «Партнёры» у партнёра) — кнопку прячем. */
 function refreshSettingsSeg(){
+  /* Видимость считаем без нашего же скрытия по разделу — иначе неактивные разделы пропадают из переключателя */
+  document.querySelectorAll('#sec-settings .card[data-group]').forEach(c=> c.classList.remove('set-hidden'));
   const have = {};
   document.querySelectorAll('#sec-settings .card[data-group]').forEach(c=>{ if(!c.hidden && getComputedStyle(c).display !== 'none') have[c.dataset.group] = true; });
   document.querySelectorAll('#setSeg button').forEach(b=> b.hidden = !have[b.dataset.g]);
