@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=133">
+<link rel="stylesheet" href="css/app.css?v=134">
 </head>
 <body>
 
@@ -75,7 +75,7 @@
           <div class="sub" id="syncSub"><span class="sync-dot"></span><span id="syncLine">На устройстве</span><span class="sub-sep">·</span><span id="productCountPill">0 товаров</span></div>
         </div>
       </div>
-      <button class="icon-btn-lg head-btn" onclick="openSettings()" aria-label="Настройки"><svg class="icon"><use href="#i-gear"/></svg></button>
+      <button class="icon-btn-lg head-btn" onclick="openSettingsSheet()" aria-label="Настройки"><svg class="icon"><use href="#i-gear"/></svg></button>
     </header>
   </div>
 
@@ -198,12 +198,15 @@
     <section id="sec-stock">
       <!-- Шапка склада: склады, действия и вкладки — одной группой -->
       <div class="stock-sticky">
-      <div class="stock-bar">
-        <div class="stock-bar-row">
+      <!-- Вкладки «В продаже / Стоп» и «⋯» — одной строкой -->
+      <div class="stock-tabrow">
+        <div class="period-seg stock-tabs" id="stockTabSeg" role="tablist">
+          <button data-v="active" class="active" onclick="setStockTab('active')">В продаже <span class="tab-count" id="stockCntActive"></span></button>
+          <button data-v="stop" onclick="setStockTab('stop')"><svg class="icon"><use href="#i-pause"/></svg>Стоп <span class="tab-count" id="stockCntStop"></span></button>
+        </div>
+        <div class="head-actions" id="stockActions">
           <!-- Склады: «⋯» → «Выбрать склад» / «Добавить склад» -->
-          <div class="head-actions" id="stockActions">
-            <button class="icon-btn-lg" onclick="openStockSheet()" aria-label="Действия со складом" aria-haspopup="dialog"><svg class="icon"><use href="#i-dots"/></svg></button>
-          </div>
+          <button class="icon-btn-lg" onclick="openStockSheet()" aria-label="Действия со складом" aria-haspopup="dialog"><svg class="icon"><use href="#i-dots"/></svg></button>
         </div>
       </div>
 
@@ -214,10 +217,6 @@
         <button type="button" class="sel-x" onclick="clearInvoiceSelection()" aria-label="Снять выделение">×</button>
       </div>
 
-      <div class="period-seg stock-tabs" id="stockTabSeg" role="tablist">
-        <button data-v="active" class="active" onclick="setStockTab('active')">В продаже <span class="tab-count" id="stockCntActive"></span></button>
-        <button data-v="stop" onclick="setStockTab('stop')"><svg class="icon"><use href="#i-pause"/></svg>Стоп <span class="tab-count" id="stockCntStop"></span></button>
-      </div>
       </div>
 
       <div class="t-caption" id="invoiceSelCount" style="margin-bottom:var(--sp-3);color:var(--text-tertiary);">Выбрано: 0 товаров</div>
@@ -874,6 +873,16 @@
   <div id="warehouseSheetList"></div>
 </div>
 
+<!-- Шторка настроек: та же, что у «⋯» на складе — выбираем раздел -->
+<div class="sheet-scrim" id="settingsSheetBg" onclick="closeSettingsSheet()"></div>
+<div class="top-sheet" id="settingsSheet" role="dialog" aria-label="Настройки">
+  <div class="sheet-grip" aria-hidden="true"></div>
+  <button type="button" class="sheet-row" onclick="openSettingsAt('account')"><span class="sheet-ico"><svg class="icon"><use href="#i-gear"/></svg></span>Аккаунт и синхронизация<span class="sheet-chev">›</span></button>
+  <button type="button" class="sheet-row" onclick="openSettingsAt('store')"><span class="sheet-ico"><svg class="icon"><use href="#i-box"/></svg></span>Склад: логотип, параметры, звуки<span class="sheet-chev">›</span></button>
+  <button type="button" class="sheet-row" onclick="openSettingsAt('partners')"><span class="sheet-ico"><svg class="icon"><use href="#i-swap"/></svg></span>Партнёры и аккаунты<span class="sheet-chev">›</span></button>
+  <button type="button" class="sheet-row" onclick="openSettingsAt('backup')"><span class="sheet-ico"><svg class="icon"><use href="#i-download"/></svg></span>Копии и данные<span class="sheet-chev">›</span></button>
+</div>
+
 <!-- Мультизаказ: выбранные галочками товары проходят одним заказом -->
 <div class="modal-bg" id="multiOrderModalBg" data-close="closeMultiOrder">
   <div class="modal">
@@ -1038,7 +1047,7 @@
     </div>
     <input type="text" id="returnPickSearch" placeholder="Поиск по SKU или названию" oninput="renderReturnPickList()" style="margin-bottom:var(--sp-2);">
     <div class="t-caption" style="margin:0 0 var(--sp-2);color:var(--text-tertiary);">Нажмите на товар — сразу добавится 1 шт. Вернули больше — нажмите ещё раз.</div>
-    <div id="returnPickList" style="max-height:50vh;overflow-y:auto;"></div>
+    <div id="returnPickList"></div>
   </div>
 </div>
 
@@ -1070,20 +1079,20 @@
 <script src="vendor/zxing.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
-<script src="sync-config.js?v=133"></script>
-<script src="js/db.js?v=133"></script>
-<script src="js/sync-ui.js?v=133"></script>
-<script src="js/input.js?v=133"></script>
-<script src="js/returns-scan.js?v=133"></script>
-<script src="js/sounds.js?v=133"></script>
-<script src="js/stock-history.js?v=133"></script>
-<script src="js/xlsx-writer.js?v=133"></script>
-<script src="js/finance.js?v=133"></script>
-<script src="js/balance.js?v=133"></script>
-<script src="js/analytics.js?v=133"></script>
-<script src="js/settings-roles.js?v=133"></script>
-<script src="js/backup-labels.js?v=133"></script>
+<script src="sync-config.js?v=134"></script>
+<script src="js/db.js?v=134"></script>
+<script src="js/sync-ui.js?v=134"></script>
+<script src="js/input.js?v=134"></script>
+<script src="js/returns-scan.js?v=134"></script>
+<script src="js/sounds.js?v=134"></script>
+<script src="js/stock-history.js?v=134"></script>
+<script src="js/xlsx-writer.js?v=134"></script>
+<script src="js/finance.js?v=134"></script>
+<script src="js/balance.js?v=134"></script>
+<script src="js/analytics.js?v=134"></script>
+<script src="js/settings-roles.js?v=134"></script>
+<script src="js/backup-labels.js?v=134"></script>
 <!-- после основного кода: синхронизация опирается на его функции -->
-<script src="sync.js?v=133"></script>
+<script src="sync.js?v=134"></script>
 </body>
 </html>
