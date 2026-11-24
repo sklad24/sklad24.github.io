@@ -1127,8 +1127,8 @@ body{background:radial-gradient(120% 60% at 8% 0%,#DCE6FF 0%,transparent 60%),ra
 }
 
 /* Склад: «В продаже / Стоп» и «⋯» в одну строку, без плашки позади — выше, чем раньше */
-.stock-sticky{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;margin:0;padding:0 0 4px;}
-.stock-tabrow{display:flex;align-items:center;gap:10px;margin:0 0 10px;}
+.stock-sticky{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;margin:0;padding:12px 0 0;}
+.stock-tabrow{display:flex;align-items:center;gap:10px;margin:0 0 12px;}
 .stock-tabrow .stock-tabs{flex:1;min-width:0;margin:0;padding:3px;}
 .stock-tabrow .stock-tabs button{min-height:34px;padding:0 10px;font-size:14px;}
 .stock-tabrow #stockActions{margin:0;flex:none;}
