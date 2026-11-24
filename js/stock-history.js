@@ -250,6 +250,10 @@ async function renderStock(){
     if(normal<=0) cls='zero'; else if(normal<=settings.lowStock) cls='low';
     const extra = [r.ret ? `<span class="q-ret">${r.ret} возвр.</span>` : '', r.dmg ? `<span class="q-dmg">${r.dmg} повр.</span>` : ''].filter(Boolean).join('');
     const qtyHtml = `<div class="stock-qty"><span class="rval ${cls}">${normal} шт</span>${extra ? `<div class="q-extra">${extra}</div>` : ''}</div>`;
+    /* Вариант Б: остаток крупно справа вверху, возвраты и повреждённые — чипами строкой ниже */
+    const bigQty = `<span class="rval ${cls}">${normal}<small> шт</small></span>`;
+    const plRet = n => (n % 10 === 1 && n % 100 !== 11) ? 'возврат' : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 'возврата' : 'возвратов');
+    const chipsHtml = [r.ret ? `<span class="chip ret">${r.ret} ${plRet(r.ret)}</span>` : '', r.dmg ? `<span class="chip dmg">${r.dmg} ${r.dmg === 1 ? 'повреждён' : 'повреждено'}</span>` : ''].filter(Boolean).join('');
     if(emp){
       /* Кабинет сотрудника: только просмотр. Видно название, остаток и
          цену продажи; себестоимость, поставщик и правка скрыты. */
@@ -272,21 +276,26 @@ async function renderStock(){
       <div class="swipe-bg r">Расход<svg class="icon"><use href="#i-out"/></svg></div>
       <div class="row-item swipe-fg stock-card">
         <div class="sc-top">
-          <input type="checkbox" class="inv-chk" aria-label="Выбрать для накладной" data-sku="${escapeAttr(p.sku)}" ${invoiceSelection.has(p.sku)?'checked':''} onchange="toggleInvoiceSelection('${escapeAttr(p.sku)}', this.checked)">
-          <span class="thumb">${p.photo ? `<img src="${p.photo}" alt="">` : '<svg class="icon"><use href="#i-box"/></svg>'}</span>
-          <div class="rmain">
-            <div class="rname">${escapeHtml(p.name)}</div>
-            <div class="rmeta">${escapeHtml(p.sku)} · ${p.barcode?escapeHtml(p.barcode):'без штрихкода'}${p.supplier?' · '+escapeHtml(p.supplier):''}</div>
-            ${fcHint}
+          <div class="sc-photo">
+            <span class="thumb">${p.photo ? `<img src="${p.photo}" alt="">` : '<svg class="icon"><use href="#i-box"/></svg>'}</span>
+            <input type="checkbox" class="inv-chk" aria-label="Выбрать для накладной" data-sku="${escapeAttr(p.sku)}" ${invoiceSelection.has(p.sku)?'checked':''} onchange="toggleInvoiceSelection('${escapeAttr(p.sku)}', this.checked)">
+          </div>
+          <div class="sc-info">
+            <div class="sc-head">
+              <div class="sc-title">
+                <div class="rname">${escapeHtml(p.name)}</div>
+                <div class="rmeta">${escapeHtml(p.sku)} · ${p.barcode?escapeHtml(p.barcode):'без штрихкода'}${p.supplier?' · '+escapeHtml(p.supplier):''}</div>
+                ${fcHint}
+              </div>
+              <div class="sc-qty-box">${bigQty}</div>
+            </div>
+            ${chipsHtml ? `<div class="sc-chips">${chipsHtml}</div>` : ''}
           </div>
         </div>
-        <button class="btn ghost sc-btn sc-edit" onclick="editProduct('${escapeAttr(p.sku)}')" aria-label="Изменить"><svg class="icon"><use href="#i-edit"/></svg></button>
         <div class="sc-actions">
-          <div class="sc-pair">
-            <button class="btn ghost sc-btn sc-in" onclick="openQuickPrihod('${escapeAttr(p.sku)}')">Приход</button>
-            <button class="btn ghost sc-btn sc-out" onclick="openQuickRashod('${escapeAttr(p.sku)}')">Расход</button>
-          </div>
-          <div class="sc-qty-box">${qtyHtml}</div>
+          <button class="btn ghost sc-btn sc-in" onclick="openQuickPrihod('${escapeAttr(p.sku)}')">Приход</button>
+          <button class="btn ghost sc-btn sc-out" onclick="openQuickRashod('${escapeAttr(p.sku)}')">Расход</button>
+          <button class="btn ghost sc-btn sc-edit" onclick="editProduct('${escapeAttr(p.sku)}')" aria-label="Изменить"><svg class="icon"><use href="#i-edit"/></svg></button>
         </div>
       </div>
     </div>`;
