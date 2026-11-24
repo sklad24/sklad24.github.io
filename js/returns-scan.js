@@ -200,12 +200,13 @@ function closeReturnPick(){
 /* Список занимает ровно место между поиском и клавиатурой: visualViewport —
    это видимая часть экрана без клавиатуры (на iPhone окно под неё не сжимается). */
 function fitReturnPickList(){
-  const bg = document.getElementById('returnPickModalBg'), list = document.getElementById('returnPickList');
-  if(!bg || !list || !bg.classList.contains('show')) return;
+  const bg = document.getElementById('returnPickModalBg');
+  const modal = bg && bg.querySelector('.modal');
+  if(!modal || !bg.classList.contains('show')) return;
   const vv = window.visualViewport;
   const visibleBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
-  const top = list.getBoundingClientRect().top;
-  list.style.maxHeight = Math.max(120, Math.floor(visibleBottom - top - 16)) + 'px';
+  /* offsetTop не зависит от анимации выезда, в отличие от getBoundingClientRect */
+  modal.style.maxHeight = Math.max(260, Math.floor(visibleBottom - modal.offsetTop - 12)) + 'px';
 }
 if(window.visualViewport){
   window.visualViewport.addEventListener('resize', fitReturnPickList);
