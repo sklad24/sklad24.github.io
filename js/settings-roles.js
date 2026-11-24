@@ -344,6 +344,23 @@ function closeWarehousePicker(){
   document.getElementById('warehouseSheetBg').classList.remove('show');
   document.getElementById('warehouseSheet').classList.remove('show');
 }
+/* Значок настроек открывает шторку с разделами, как «⋯» на складе. */
+function openSettingsSheet(){
+  closeChromeMenu();
+  document.getElementById('settingsSheetBg').classList.add('show');
+  document.getElementById('settingsSheet').classList.add('show');
+}
+function closeSettingsSheet(){
+  document.getElementById('settingsSheetBg').classList.remove('show');
+  document.getElementById('settingsSheet').classList.remove('show');
+}
+/* Раздел выбран: шторка закрывается, открываются настройки на этом разделе.
+   Если у этого входа раздела нет (например, «Партнёры» у партнёра), refreshSettingsSeg покажет первый доступный. */
+function openSettingsAt(g){
+  closeSettingsSheet();
+  window.__setGroup = g;
+  showSection('settings', null);
+}
 
 /* Настройки по разделам: сверху переключатель, внизу — только карточки выбранного раздела. */
 function setSettingsGroup(g){
